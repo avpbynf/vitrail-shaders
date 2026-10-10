@@ -90,6 +90,9 @@ public final class PackValues {
 	 */
 	private boolean dhShadow = true;
 
+	/** Whether this pack keeps Distant Horizons' own clouds out of the sky; see {@link #avoidsDhClouds}. */
+	private boolean avoidsDhClouds;
+
 	/** Which shape this pack asked the light to measure a section against. */
 	private ShadowCullState shadowCull = ShadowCullState.DEFAULT;
 
@@ -145,6 +148,10 @@ public final class PackValues {
 		values.rainDepth = properties.rainDepth(settings.globalDefines(options));
 		values.shadowCasters = properties.shadowCasters(settings.globalDefines(options));
 		values.dhShadow = properties.dhShadow(settings.globalDefines(options));
+		ShaderProperties.CloudSetting dhClouds = properties.dhClouds(settings.globalDefines(options));
+		values.avoidsDhClouds = dhClouds == ShaderProperties.CloudSetting.OFF
+				|| (dhClouds == ShaderProperties.CloudSetting.DEFAULT
+						&& values.skyElements.clouds() == ShaderProperties.CloudSetting.OFF);
 		values.shadowCull = properties.shadowCull(settings.globalDefines(options));
 		values.separateAo = properties.separateAo(settings.globalDefines(options));
 		values.breaksAnisotropy = properties.breaksAnisotropy(settings.globalDefines(options));
@@ -603,6 +610,19 @@ public final class PackValues {
 	 */
 	public boolean dhShadow() {
 		return this.dhShadow;
+	}
+
+	/**
+	 * Whether this pack keeps the clouds Distant Horizons draws past the world's own out of the sky,
+	 * which is Iris's answer read off the same two words
+	 * ({@code compat/dh/DHCompatInternal.java:290}): {@code dhClouds=off}, or no {@code dhClouds}
+	 * at all and {@code clouds=off}. They are a generic object of that mod's, drawn by it and lit by
+	 * nothing of the pack's, so a pack that switched the game's clouds off for clouds of its own
+	 * otherwise has DH's drawn over them; under blindness, where the pack's own go black, they are
+	 * the only bright thing left in the sky.
+	 */
+	public boolean avoidsDhClouds() {
+		return this.avoidsDhClouds;
 	}
 
 	/**

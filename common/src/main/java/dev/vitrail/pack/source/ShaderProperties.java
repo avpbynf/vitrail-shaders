@@ -143,6 +143,10 @@ public final class ShaderProperties {
 	// The fifth word of that family, kept apart because it is the one that takes neither a yes nor a
 	// no: a pack writes off, fast or fancy, which are the game's own three cloud settings.
 	private static final Pattern CLOUDS = Pattern.compile("^\\s*clouds\\s*=\\s*(.*)$");
+	// The word for the clouds Distant Horizons draws past the world's own, which are a generic object
+	// of that mod's rather than anything of the game's cloud renderer, so the line above never reaches
+	// them. It is not that line's vocabulary: a pack writes off, or on, which fancy also means.
+	private static final Pattern DH_CLOUDS = Pattern.compile("^\\s*dhClouds\\s*=\\s*(.*)$");
 	// And the one of that same family that carries two words rather than one, so it has a pattern
 	// of its own: the first says whether the rain and the snow are drawn at all, the second whether
 	// the splashes they leave on the ground are.
@@ -457,6 +461,11 @@ public final class ShaderProperties {
 		// else is a line nothing here reads, and it belongs among the keys that say so.
 		Matcher clouds = CLOUDS.matcher(line);
 		if (clouds.matches() && CloudSetting.of(clouds.group(1).trim()) != null) {
+			return;
+		}
+
+		Matcher dhClouds = DH_CLOUDS.matcher(line);
+		if (dhClouds.matches() && CloudSetting.ofDistant(dhClouds.group(1).trim()) != null) {
 			return;
 		}
 
@@ -1295,6 +1304,38 @@ public final class ShaderProperties {
 	}
 
 	/**
+	 * What the pack asked of the clouds Distant Horizons draws past the world's own, live lines only,
+	 * or {@link CloudSetting#DEFAULT} where no live line says anything this can read.
+	 * <p>
+	 * Iris reads the same word into a setting of its own and answers DH with it in
+	 * {@code compat/dh/DHCompatInternal.java:290}: the far clouds are kept out where it says
+	 * {@code off}, and where it says nothing they follow {@code clouds}, so a pack that switched the
+	 * game's clouds off for clouds of its own does not have DH's drawn back over them.
+	 * <p>
+	 * <strong>{@code on} is a word of this line and not of {@code clouds},</strong> which is why it
+	 * is read through {@link CloudSetting#ofDistant}: Iris takes {@code off} as off and {@code on} or
+	 * {@code fancy} as fancy ({@code shaderpack/properties/ShaderProperties.java:170-178}). Read as
+	 * {@code clouds} is read, {@code on} named nothing, so a pack writing {@code dhClouds=on} beside
+	 * {@code clouds=off} was taken to have said nothing and lost DH's clouds to the rule above.
+	 * <p>
+	 * Live lines for the reason {@link #dhShadow} gives: the packs that write it write it under an
+	 * {@code #ifdef DISTANT_HORIZONS}.
+	 *
+	 * @param defines the pack's settings, which decide which lines of the file are alive at all
+	 */
+	public CloudSetting dhClouds(Map<String, String> defines) {
+		CloudSetting asked = CloudSetting.DEFAULT;
+		for (Matcher line : live(DH_CLOUDS, defines)) {
+			CloudSetting setting = CloudSetting.ofDistant(line.group(1).trim());
+			if (setting != null) {
+				asked = setting;
+			}
+		}
+
+		return asked;
+	}
+
+	/**
 	 * Which of the world's six families the pack wants drawn into the shadow map, live lines only.
 	 * <p>
 	 * <strong>The defaults are Iris's and two of them are not what they look like.</strong> Four are
@@ -1761,6 +1802,20 @@ public final class ShaderProperties {
 				case "off" -> OFF;
 				case "fast" -> FAST;
 				case "fancy" -> FANCY;
+				default -> null;
+			};
+		}
+
+		/**
+		 * The setting a {@code dhClouds} value names, or null for anything else: {@code off}, or
+		 * {@code on} and {@code fancy} for the same thing, which are Iris's words for that line
+		 * ({@code shaderpack/properties/ShaderProperties.java:170-178}). {@code fast} is not one of
+		 * them.
+		 */
+		static CloudSetting ofDistant(String value) {
+			return switch (value.toLowerCase(Locale.ROOT)) {
+				case "off" -> OFF;
+				case "on", "fancy" -> FANCY;
 				default -> null;
 			};
 		}

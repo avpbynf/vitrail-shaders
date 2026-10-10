@@ -15,6 +15,11 @@ what the next one holds.
 
 ### Fixed
 
+- **Distant Horizons' own clouds stay out of a pack that asks for that.** With Distant Horizons
+  installed, its blocky clouds were drawn over the pack's sky even when the pack writes
+  `dhClouds=off`, as Complementary does. They were hardest to miss under blindness, where the
+  pack's own clouds go dark and Distant Horizons' stayed bright. They are now held off for as long
+  as such a pack is loaded, as Iris does, and your own Distant Horizons setting is left as it was.
 - **Mining a block shows its cracks again on 26.3.** With a shader pack loaded, the crack overlay
   never appeared and the block simply broke. 26.3 draws the crack over an ordinary block earlier in
   the frame than 26.2 did, among the solid features, and Vitrail was only waiting for it among the

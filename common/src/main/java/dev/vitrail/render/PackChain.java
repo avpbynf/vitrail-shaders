@@ -1735,6 +1735,10 @@ public final class PackChain {
 		// what this engine draws with the door shut.
 		DhLods.install();
 
+		// And DH's own clouds with it, on the pack's word and on nothing else: they are drawn whether
+		// or not the far terrain is taken over, and handed back with the pack in release.
+		DhLods.clouds(chain.values.avoidsDhClouds());
+
 		GpuTextureView served = chain.distant.served();
 		if (served == null && !chain.readsDistantDepth()) {
 			return;

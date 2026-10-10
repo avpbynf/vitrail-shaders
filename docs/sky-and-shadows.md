@@ -680,6 +680,20 @@ draw their own, volumetric, in a composite. Complementary goes further and ships
 pack whose vanilla clouds vanish when this is switched on is usually getting what it asked for, and
 the pack to judge the work on is one that asks for nothing.
 
+**Distant Horizons draws clouds of its own, and `dhClouds` is the word for those.** They are a
+generic object of that mod's, out past the world's own, drawn by DH and lit by nothing of the
+pack's, so `clouds` never reaches them. The answer is Iris's (`compat/dh/DHCompatInternal.java:290`):
+they are kept out where the pack writes `dhClouds=off`, and where it writes no `dhClouds` at all they
+follow `clouds`, so a pack that switched the game's clouds off for clouds of its own is not handed
+DH's over them. A pack that writes `dhClouds=on` keeps them whatever `clouds` says: the line has words
+of its own, `off`, or `on` and `fancy` for the same thing, and `fast` is not one of them
+(`shaderpack/properties/ShaderProperties.java:170-178`). Complementary writes `dhClouds = off` under
+DH. They are held off through DH's own
+published switch for them, set beside the player's value rather than over it and cleared with the
+pack, where Iris cancels the object in a render event of DH's that this engine cannot subclass. Left
+on, they were the one bright thing in the sky under blindness, the pack's own clouds going black
+there as they should.
+
 ### Where the clouds land in the frame
 
 They are drawn after the main pass, which settles two things that the sky has to argue about. The
