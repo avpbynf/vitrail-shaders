@@ -10,6 +10,7 @@
 		"FirstPersonHandsAndItemsRendererMixin",
 		"GameRendererHandMixin",
 		"GameRendererTransparencyMixin",
+		"LevelRendererBorderMixin",
 		"LevelRendererFeaturesMixin",
 		"LevelRendererMainPassMixin",
 		"PipelineBuilderMixin",

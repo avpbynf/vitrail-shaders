@@ -12,6 +12,7 @@ import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.blaze3d.platform.BlendFactor;
 import com.mojang.blaze3d.shaders.ShaderSource;
 import com.mojang.blaze3d.shaders.ShaderType;
 import com.mojang.blaze3d.systems.CommandEncoder;
@@ -104,6 +105,11 @@ import java.util.Optional;
  * Nothing about the composition order changes that, and nothing here can fix it: the body has to
  * arrive through {@code gbuffers_entities}, which is the milestone.
  * <p>
+ * <strong>The world border is caught here too, in a bracket of its own</strong>
+ * ({@code PackChain.openBorder}): it is drawn after the translucent terrain, long after the
+ * features were composed, so the layer is emptied again for it and composed again once it is
+ * drawn, with {@link #ADDED} rather than the blend below.
+ * <p>
  * The composition is premultiplied, {@code ONE, ONE_MINUS_SRC_ALPHA}, and that is not a taste. The
  * game's pipelines blend {@code SRC_ALPHA} onto a layer cleared to transparent black, which leaves
  * the colour already multiplied by its alpha; blending by alpha a second time would darken every
@@ -159,10 +165,29 @@ final class FeatureLayer {
 			}
 			""";
 
+	/**
+	 * What the world border is composed with, which is colour added and the pack's alpha left
+	 * alone.
+	 * <p>
+	 * <strong>Not the premultiplied blend the features take, and the border's own blend is why.</strong>
+	 * The game draws it with {@code BlendFunction.OVERLAY}, {@code SRC_ALPHA, ONE}: added, never
+	 * laid over. Onto a layer emptied to transparent black that leaves the sum of every stripe's
+	 * colour times its alpha, which added onto the pack's picture is exactly what the game would have
+	 * put there. Composed premultiplied instead, the layer's alpha would darken the world behind every
+	 * stripe, which the game's border never does. The alpha is kept rather than added, the pack's
+	 * first draw buffer carrying whatever the pack put in its alpha and the game's border writing none
+	 * of it there.
+	 */
+	private static final BlendFunction ADDED = new BlendFunction(BlendFactor.ONE, BlendFactor.ONE,
+			BlendFactor.ZERO, BlendFactor.ONE);
+
 	/** Where the composition lands: the seed's target, on its after-deferred half. */
 	private final ChainPlan.Attachment into;
 
 	private final RenderPipeline pipeline;
+
+	/** The same composition with {@link #ADDED}, for the world border. */
+	private final RenderPipeline added;
 	private final ShaderSource source;
 
 	private TextureTarget layer;
@@ -196,16 +221,22 @@ final class FeatureLayer {
 			return VERTEX_ID.equals(id) ? VERTEX : null;
 		});
 
-		this.pipeline = RenderPipeline.builder()
-				.withLocation(Identifier.fromNamespaceAndPath(Vitrail.MOD_ID,
-						"pipeline/feature_layer"))
+		this.pipeline = composition("pipeline/feature_layer",
+				BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA, destination);
+		this.added = composition("pipeline/feature_layer_added", ADDED, destination);
+	}
+
+	/** One of the two compositions: the full screen quad over the layer, with this blend. */
+	private static RenderPipeline composition(String location, BlendFunction blend,
+			GpuFormat destination) {
+		return RenderPipeline.builder()
+				.withLocation(Identifier.fromNamespaceAndPath(Vitrail.MOD_ID, location))
 				.withVertexShader(VERTEX_ID)
 				.withFragmentShader(FRAGMENT_ID)
 				.withBindGroupLayout(BindGroupLayouts.GLOBALS)
 				.withBindGroupLayout(GraphicsApi.samplers(SAMPLER))
 				.withVertexBinding(0, DefaultVertexFormat.POSITION_TEX)
-				.withColorTargetState(new ColorTargetState(
-						Optional.of(BlendFunction.TRANSLUCENT_PREMULTIPLIED_ALPHA), destination,
+				.withColorTargetState(new ColorTargetState(Optional.of(blend), destination,
 						ColorTargetState.WRITE_ALL))
 				.withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
 				.withCull(false)
@@ -266,9 +297,13 @@ final class FeatureLayer {
 		return this.layer.getColorTextureView();
 	}
 
-	/** Called every frame: a resource reload empties the pipeline cache. */
+	/**
+	 * Called every frame: a resource reload empties the pipeline cache. Both compositions are
+	 * compiled here and answered together, the border's being the same shaders under another blend.
+	 */
 	boolean prepare(GpuDevice device) {
-		if (GraphicsApi.valid(GraphicsApi.compile(device, this.pipeline, this.source))) {
+		if (GraphicsApi.valid(GraphicsApi.compile(device, this.pipeline, this.source))
+				&& GraphicsApi.valid(GraphicsApi.compile(device, this.added, this.source))) {
 			return true;
 		}
 
@@ -295,15 +330,18 @@ final class FeatureLayer {
 	 * to attach it: the debt is paid as this pass's load-op, exactly as a geometry pass pays it.
 	 * Left owed instead, the layer would land on the LAST frame's texels, and the deferred flush
 	 * that later settles every remaining debt would erase the composition it sits under.
+	 *
+	 * @param added whether the layer holds the world border, which is composed by {@link #ADDED}
+	 *              rather than laid over premultiplied
 	 */
 	void compose(CommandEncoder encoder, GpuBuffer quad, GpuTextureView into,
-			Optional<Vector4fc> clear) {
+			Optional<Vector4fc> clear, boolean added) {
 		if (this.layer == null || quad == null || into == null) {
 			return;
 		}
 
 		try (RenderPass pass = encoder.createRenderPass(() -> LABEL, into, clear)) {
-			GraphicsApi.setPipeline(pass, this.pipeline);
+			GraphicsApi.setPipeline(pass, added ? this.added : this.pipeline);
 			RenderSystem.bindDefaultUniforms(pass);
 			pass.setVertexBuffer(0, quad.slice());
 			GraphicsApi.bindTexture(pass, SAMPLER, this.layer.getColorTextureView(),

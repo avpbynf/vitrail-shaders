@@ -15,6 +15,9 @@ what the next one holds.
 
 ### Fixed
 
+- **The world border is visible again with a shader pack loaded.** It was drawn every frame and
+  then painted over by the pack's own image, so walking up to the border showed nothing at all. It
+  is now carried onto the pack's image, drawn by the game as it is without a pack.
 - **Mining a block shows its cracks again on 26.3.** With a shader pack loaded, the crack overlay
   never appeared and the block simply broke. 26.3 draws the crack over an ordinary block earlier in
   the frame than 26.2 did, among the solid features, and Vitrail was only waiting for it among the

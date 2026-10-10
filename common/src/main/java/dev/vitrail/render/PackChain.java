@@ -386,6 +386,12 @@ public final class PackChain {
 	 */
 	private boolean redirected;
 
+	/**
+	 * Whether {@link #openBorder()} really handed the world border the layer this frame, which is
+	 * the one thing {@link #closeBorder()} may compose, on {@link #redirected}'s argument.
+	 */
+	private boolean bordered;
+
 	PackChain(PackProgram.Chain chain, PackValues values, String world, boolean seedEnabled,
 			OpenedPack opened, Path packPath, Map<String, OptionValue> chosen, String profile) {
 		// One pack's shadow map is not another's, and the arming file is read again here so a
@@ -2108,25 +2114,111 @@ public final class PackChain {
 		// openFeatures itself is called from, but the flag makes that a fact rather than a timing.
 		chain.redirected = false;
 
+		chain.composeLayer(false);
+	}
+
+	/**
+	 * Empties the layer again and answers it for the game's world border to be drawn into, or null
+	 * where the border is to stay on the game's own target. Must run outside any render pass, and is
+	 * undone by {@link #closeBorder()}.
+	 * <p>
+	 * <strong>The border is the last thing the level draws, and nothing carried it.</strong> Both
+	 * games draw it after the translucent terrain, the clouds and the weather, straight onto the main
+	 * target: 26.2 in a pass of its own ({@code WorldBorderRenderer.render}), 26.3 at the end of
+	 * {@code LevelRenderer.executeClassicTransparency} into the level's one pass. That is after the
+	 * layer {@link #openFeatures()} catches has been composed, and the pack's final then overwrites
+	 * the main target, so the border was drawn every frame and seen on none.
+	 * <p>
+	 * <strong>It takes the beacon beam's road and not Iris's.</strong> Iris draws it with the pack's
+	 * own program, keying {@code RenderPipelines.WORLD_BORDER} through {@code getCutout}
+	 * ({@code pipeline/IrisPipelines.java}) and so onto {@code gbuffers_entities} at the camera. No
+	 * family of this engine serves that pipeline yet, so the border is what the beam and the bolt
+	 * are: the game's own drawing, caught in {@link FeatureLayer} with the world's depth behind it and
+	 * composed onto the pack's picture, visible and flat. What it costs is that a pack styling its
+	 * border sees the game's, and it goes the day a family serves the pipeline.
+	 * <p>
+	 * The same layer and not a second one, because the two brackets never overlap: the features have
+	 * been composed by the time the border is drawn, so the layer is free again and only has to be
+	 * emptied. The caller asks only on a frame the border is really drawn, so the emptying and the
+	 * composition are not paid on the frames, nearly all of them, where nobody stands near one.
+	 */
+	public static GpuTextureView openBorder() {
+		PackChain chain = active;
 		GpuDevice device = RenderSystem.tryGetDevice();
-		if (disabled || device == null || chain.features == null) {
+		Minecraft minecraft = Minecraft.getInstance();
+		if (disabled || chain == null || device == null || minecraft == null || !chainWanted
+				|| chain.features == null) {
+			return null;
+		}
+
+		RenderTarget main = minecraft.gameRenderer.mainRenderTarget();
+
+		// Caught as openFeatures catches, for its reason: this is reached from inside the level's
+		// render, and a throw leaving here comes back on every frame after.
+		try {
+			if (main == null || !chain.features.prepare(device) || !chain.drawable()) {
+				return null;
+			}
+
+			GpuTextureView layer = chain.features.open(device, main.width, main.height);
+			chain.bordered = layer != null;
+
+			return layer;
+		} catch (GpuDeviceLossException e) {
+			throw e;
+		} catch (RuntimeException e) {
+			chain.bordered = false;
+			stop();
+			Vitrail.logger().error("Vitrail stopped drawing this pack after an error", e);
+			chain.release();
+
+			return null;
+		}
+	}
+
+	/**
+	 * Composes the world border {@link #openBorder()} caught onto the pack's picture, where the
+	 * features were composed before it. Must run outside any render pass, once the border's own pass
+	 * has closed.
+	 */
+	public static void closeBorder() {
+		PackChain chain = active;
+		if (chain == null || !chain.bordered) {
+			return;
+		}
+
+		// Taken down before anything can throw, so the pair is balanced by the frame that opened it.
+		chain.bordered = false;
+		chain.composeLayer(true);
+	}
+
+	/**
+	 * Composes the layer onto the first draw buffer of the translucent geometry pass, which is the
+	 * one composition both brackets end on.
+	 *
+	 * @param added whether the layer holds the world border, which is added onto the picture where
+	 *              the features are laid over it; {@code FeatureLayer.ADDED} says why
+	 */
+	private void composeLayer(boolean added) {
+		GpuDevice device = RenderSystem.tryGetDevice();
+		if (disabled || device == null || this.features == null) {
 			return;
 		}
 
 		try {
-			ChainPlan.Attachment into = chain.features.into();
-			GpuTextureView view = chain.targets.view(into.target(), into.side());
+			ChainPlan.Attachment into = this.features.into();
+			GpuTextureView view = this.targets.view(into.target(), into.side());
 			// This pass may be the frame's first to attach that target, so it takes the emptying
 			// still owed, the way every attaching pass does: composed onto a debt left standing,
 			// the layer would sit on stale texels and be erased with them at the deferred flush.
-			chain.features.compose(device.createCommandEncoder(), chain.quad, view,
-					chain.targets.takeClear(view));
+			this.features.compose(device.createCommandEncoder(), this.quad, view,
+					this.targets.takeClear(view), added);
 		} catch (GpuDeviceLossException e) {
 			throw e;
 		} catch (RuntimeException e) {
 			stop();
 			Vitrail.logger().error("Vitrail stopped drawing this pack after an error", e);
-			chain.release();
+			release();
 		}
 	}
 
