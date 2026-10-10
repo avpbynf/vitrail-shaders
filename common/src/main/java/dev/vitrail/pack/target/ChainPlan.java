@@ -191,13 +191,21 @@ public final class ChainPlan {
 					// targets as written in every place a plan is built for, which is every place
 					// none of the six is standing.
 					new NamedProgram("gbuffers_spidereyes", true, NOT_EVERYWHERE),
-					// The overlay over a block being mined, drawn among the translucent features
-					// beside the eyes and on the same side of the stage. Left out of this list, its
-					// family drew one output onto the game's cleared target, and the multiply the
-					// overlay blends with came out opaque black over every crack.
+					// The overlay over a block being mined, which straddles the stage on 26.3 for the
+					// glint's reason: what it lies on decides the half. That game files the crack
+					// over a translucent block among the translucent features, beside the eyes, and
+					// the crack over every other block among the SOLID ones
+					// (SubmitNodeCollection.submitBreakingBlockModel and submitCrumblingOverlay), so
+					// both sides are walked. Left out on the far side, its family drew one output
+					// onto the game's cleared target, and the multiply the overlay blends with came
+					// out opaque black over every crack. Left out on the near side, the early piece
+					// wrote its one output onto the game's own target before the scene seed, and a
+					// crack writes no depth, so the seed's cut never carried it in: the block broke
+					// with no crack on it at all.
 					//
 					// Not counted, on the hand's argument: a crack is drawn where somebody is mining
 					// a block, which is a per frame answer no per place map may carry.
+					new NamedProgram("gbuffers_damagedblock", false, NOT_EVERYWHERE),
 					new NamedProgram("gbuffers_damagedblock", true, NOT_EVERYWHERE),
 					// The game's lines, the block outline first among them, drawn among the
 					// translucent features beside the overlay and on the same side of the stage.
