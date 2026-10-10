@@ -19,6 +19,7 @@ public final class VitrailKeys {
 			event.registerCategory(SettingsKey.CATEGORY);
 			event.register(SettingsKey.OPEN);
 			event.register(SettingsKey.RELOAD);
+			event.register(SettingsKey.TOGGLE);
 		});
 	}
 }

@@ -13,6 +13,12 @@ what the next one holds.
 
 ## Unreleased
 
+### Added
+
+- **`K` turns shaders off and back on**, as it does under Iris. Turning them back on returns to
+  the pack you had picked, and a line in chat says which way it went. The key can be moved in the
+  game's controls, under Vitrail, beside the two that open the settings and reload the pack.
+
 ### Fixed
 
 - **Distant Horizons' own clouds stay out of a pack that asks for that.** With Distant Horizons

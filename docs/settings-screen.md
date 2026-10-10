@@ -13,10 +13,12 @@ document says the reference behaves some way, that is not a comparison; it is th
 Open it from the video settings, where it sits under the mod's own name in the list of pages, with
 the key bound in the game's controls (`I` by default), or from wherever else you reached the mod's
 options. A second key, `R`, reads the pack again from disk without opening anything, which is what
-makes editing a shader by hand and seeing the result a two second loop.
+makes editing a shader by hand and seeing the result a two second loop. A third, `K`, turns shaders
+off and back on, as Iris's key of the same letter does: it writes the same switch the screen's own
+toggle writes, keeps the chosen pack, and reads the pack again.
 
 On a backend other than Vulkan the engine draws nothing, so its page in the video settings opens an
-offer to switch to Vulkan, which closes the game, Iris installed or not. Its two keys do nothing
+offer to switch to Vulkan, which closes the game, Iris installed or not. Its three keys do nothing
 there, and its own page of settings is not listed in the video settings.
 
 ## Two views, one screen

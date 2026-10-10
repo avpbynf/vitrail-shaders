@@ -66,7 +66,7 @@ that picks one is in the video settings, under Vitrail in the list of pages, on 
 is watched, so a pack dropped into it turns up in the list on its own. Nothing
 inside a pack is watched: edit a shader by hand while the game runs, press `R`, and
 the pack is read again from disk, whole. The jar never needs rebuilding for any of
-it.
+it. `K` turns shaders off and back on without losing the pack you picked.
 
 ## Switching the graphics backend to Vulkan
 

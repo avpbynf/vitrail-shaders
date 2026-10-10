@@ -26,6 +26,7 @@ final class FabricKey {
 	static void register() {
 		KeyMappingHelper.registerKeyMapping(SettingsKey.OPEN);
 		KeyMappingHelper.registerKeyMapping(SettingsKey.RELOAD);
+		KeyMappingHelper.registerKeyMapping(SettingsKey.TOGGLE);
 		ClientTickEvents.START_CLIENT_TICK.register(_ -> EngineStages.clientTickStart());
 		ClientTickEvents.END_CLIENT_TICK.register(_ -> EngineStages.clientTick());
 	}
