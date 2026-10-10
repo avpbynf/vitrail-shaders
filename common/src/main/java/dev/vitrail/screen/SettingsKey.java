@@ -4,6 +4,7 @@ import dev.vitrail.HostReport;
 import dev.vitrail.IrisBeside;
 import dev.vitrail.render.PackChoice;
 import dev.vitrail.ScreenText;
+import dev.vitrail.settings.PackFile;
 import dev.vitrail.settings.PackSession;
 import dev.vitrail.Vitrail;
 
@@ -16,16 +17,20 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import org.jspecify.annotations.Nullable;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 /**
- * The two keys this mod binds: R reads the pack again, I opens the pack screen.
+ * The three keys this mod binds: R reads the pack again, K turns shaders on and off, I opens the
+ * pack screen.
  * <p>
- * Both are Iris's own, {@code iris.keybind.reload} and {@code iris.keybind.shaderPackSelection} at
- * {@code Iris.java:811} and {@code 813}, so a player who has configured a pack before will try them
- * first and find them. The game hands a press to every mapping bound to its key, so beside Iris one
- * press reaches both mods, and only one of them may answer it. Off Vulkan this engine draws nothing and
- * both keys do nothing, which beside Iris on OpenGL leaves each press to Iris's own, its reload
+ * All three are Iris's own, {@code iris.keybind.reload}, {@code iris.keybind.toggleShaders} and
+ * {@code iris.keybind.shaderPackSelection} at {@code Iris.java:811}, {@code 812} and {@code 813}, so
+ * a player who has configured a pack before will try them first and find them. Iris on Vulkan binds
+ * only the last of them ({@code IrisVKOnly.java:17}), so K and R reach this mod alone there. The
+ * game hands a press to every mapping bound to its key, so beside Iris one press reaches both mods,
+ * and only one of them may answer it. Off Vulkan this engine draws nothing and its keys do nothing,
+ * which beside Iris on OpenGL leaves each press to Iris's own, its reload
  * answering only with its debug options on ({@code Iris.java:181}). Where Iris does not draw, on
  * Vulkan, Iris binds I to a screen saying it cannot run there ({@code IrisVKOnly.java:17}), and the
  * press is taken from Iris's mapping before Iris asks it ({@link #beforeTick}). A player who moved
@@ -56,6 +61,9 @@ public final class SettingsKey {
 	public static final KeyMapping RELOAD =
 			new KeyMapping(ScreenText.RELOAD_PACK, InputConstants.KEY_R, CATEGORY);
 
+	public static final KeyMapping TOGGLE =
+			new KeyMapping(ScreenText.TOGGLE_SHADERS, InputConstants.KEY_K, CATEGORY);
+
 	/** Iris's mapping for its pack screen, by the name it registers under on both backends. */
 	private static final String IRIS_SCREEN_KEY = "iris.keybind.shaderPackSelection";
 
@@ -80,19 +88,29 @@ public final class SettingsKey {
 	}
 
 	/**
-	 * Acts on whichever of the two was pressed since the last tick, and does nothing otherwise. Off
+	 * Acts on whichever of the three was pressed since the last tick, and does nothing otherwise. Off
 	 * Vulkan the presses are only emptied, so that none of them waits to be answered on a later tick.
+	 * <p>
+	 * One of them a tick, the screen first: a toggle and a reload pressed together would read the
+	 * pack twice, and the second press is still queued for the next tick if it was not emptied.
 	 */
 	public static void poll() {
 		if (HostReport.otherBackend()) {
 			drain(OPEN);
 			drain(RELOAD);
+			drain(TOGGLE);
 			return;
 		}
 
 		if (drain(OPEN)) {
 			Minecraft minecraft = Minecraft.getInstance();
 			minecraft.gui.setScreen(PackScreens.open(minecraft.gui.screen()));
+
+			return;
+		}
+
+		if (drain(TOGGLE)) {
+			toggle();
 
 			return;
 		}
@@ -150,19 +168,126 @@ public final class SettingsKey {
 	 * it.
 	 */
 	private static void reload() {
-		Path directory = PackChoice.session()
-				.map(PackSession::gameDirectory)
-				.orElseGet(() -> Vitrail.platform().gameDirectory());
+		PackChoice.reload(directory());
+
+		say(PackChoice.lastError()
+				.map(reason -> Component.translatable(ScreenText.RELOAD_FAILED, reason)
+						.withStyle(ChatFormatting.RED))
+				.orElseGet(() -> Component.translatable(ScreenText.PACK_RELOADED)));
+	}
+
+	/**
+	 * Turns shaders off, or back on with the pack that was chosen, and says which, as Iris's toggle
+	 * does ({@code Iris.toggleShaders}).
+	 * <p>
+	 * <b>The settings screen's own road, not a second one.</b> The switch is the {@code enabled} half
+	 * of {@code pack.txt}, flipped over what the file says now and written back with the pack's name
+	 * left where it is, which is what the screen's toggle writes; then the pack is read again from
+	 * that file. So K and the screen cannot disagree about whether shaders are on, a hand edit of the
+	 * file is honoured, and turning them back on lands on the pack the player had rather than on
+	 * whatever a list shows first: {@code PackFile} keeps the two facts apart for exactly that.
+	 * <p>
+	 * Turning on with no pack chosen says so in the words the screen uses, rather than claiming a
+	 * pack was switched to; a pack that is named and fails to load says why, as the reload key does.
+	 * <p>
+	 * <b>Where nothing came on, shaders are turned back off.</b> Iris does the same on a failed
+	 * toggle: it says why in red and leaves shaders off ({@code Iris.java:199-209}). Left enabled,
+	 * {@code pack.txt} would say shaders are on while nothing draws, the screen's toggle would agree
+	 * with the file rather than with the picture, the next press of K would turn off what never came
+	 * on, and every launch after would try the same pack again. So the {@code enabled} half is written
+	 * back off, the pack's name kept, and the pack read again, which is what pressing K a second time
+	 * would have done: the next press tries the pack afresh.
+	 */
+	private static void toggle() {
+		Path directory = directory();
+		Path file = PackChoice.packFile(directory);
+		boolean enabled;
+		try {
+			PackFile onDisk = PackFile.read(file);
+			enabled = !onDisk.enabled();
+			PackFile.write(file, onDisk.withEnabled(enabled));
+		} catch (IOException | RuntimeException e) {
+			Vitrail.logger().error("Vitrail could not write {}", file, e);
+			say(Component.translatable(ScreenText.TOGGLE_FAILED, String.valueOf(e.getMessage()))
+					.withStyle(ChatFormatting.RED));
+
+			return;
+		}
 
 		PackChoice.reload(directory);
 
-		MutableComponent said = PackChoice.lastError()
-				.map(reason -> Component.translatable(ScreenText.RELOAD_FAILED, reason)
-						.withStyle(ChatFormatting.RED))
-				.orElseGet(() -> Component.translatable(ScreenText.PACK_RELOADED));
+		if (!enabled) {
+			say(Component.translatable(ScreenText.SHADERS_TURNED_OFF));
 
-		// In a world only, which is Iris's own guard: outside one there is no chat to say it in, and
-		// what was read is in the log either way.
+			return;
+		}
+
+		PackFile asked = PackChoice.askedFor();
+		MutableComponent refused = refusal(asked);
+		if (refused == null) {
+			say(Component.translatable(ScreenText.SHADERS_TOGGLED, asked.name()));
+
+			return;
+		}
+
+		// Said before the switch goes back, which reads the pack again and forgets the reason.
+		turnBackOff(directory, file);
+		say(refused);
+	}
+
+	/**
+	 * Why turning shaders on drew nothing, in the words the screen uses for each case, or null where
+	 * a pack is drawing: none chosen, the one chosen missing from the folder, or the one chosen
+	 * failing to load.
+	 */
+	private static @Nullable MutableComponent refusal(PackFile asked) {
+		if (PackChoice.noPackWanted() || !asked.wantsPack() || asked.namesNone()) {
+			return Component.translatable(ScreenText.NO_PACK).withStyle(ChatFormatting.YELLOW);
+		}
+
+		if (PackChoice.packMissing()) {
+			return Component.translatable(ScreenText.PACK_MISSING, asked.name())
+					.withStyle(ChatFormatting.RED);
+		}
+
+		return PackChoice.lastError()
+				.map(reason -> Component.translatable(ScreenText.TOGGLE_FAILED, reason)
+						.withStyle(ChatFormatting.RED))
+				.orElse(null);
+	}
+
+	/**
+	 * Writes the {@code enabled} half of {@code pack.txt} back off, the pack's name kept, and reads
+	 * the pack again, for {@link #toggle} where nothing came on. A file that cannot be written is
+	 * said in the log only: the reason nothing came on is the line the player needs.
+	 */
+	private static void turnBackOff(Path directory, Path file) {
+		try {
+			PackFile.write(file, PackFile.read(file).withEnabled(false));
+		} catch (IOException | RuntimeException e) {
+			Vitrail.logger().error("Vitrail could not write {}", file, e);
+
+			return;
+		}
+
+		PackChoice.reload(directory);
+	}
+
+	/**
+	 * The directory a key reads the pack from, which is the loaded session's rather than the
+	 * platform's whenever there is one, for the reason {@link #reload} gives.
+	 */
+	private static Path directory() {
+		return PackChoice.session()
+				.map(PackSession::gameDirectory)
+				.orElseGet(() -> Vitrail.platform().gameDirectory());
+	}
+
+	/**
+	 * Says one line in chat, in a world only, which is Iris's own guard: outside one there is no chat
+	 * to say it in, and what was read is in the log either way.
+	 */
+	private static void say(MutableComponent said) {
 		Minecraft minecraft = Minecraft.getInstance();
 		if (minecraft.player != null) {
 			minecraft.player.sendSystemMessage(said);

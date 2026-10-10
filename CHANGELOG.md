@@ -13,6 +13,14 @@ what the next one holds.
 
 ## Unreleased
 
+### Added
+
+- **`K` turns shaders off and back on**, as it does under Iris. Turning them back on returns to
+  the pack you had picked, and a line in chat says which way it went. If the pack cannot be drawn,
+  because it fails to load, is no longer in the folder or none was picked, shaders stay off and
+  the line says why, so the next press tries again. The key can be moved in the game's controls,
+  under Vitrail, beside the two that open the settings and reload the pack.
+
 ### Fixed
 
 - **Mining a block shows its cracks again on 26.3.** With a shader pack loaded, the crack overlay

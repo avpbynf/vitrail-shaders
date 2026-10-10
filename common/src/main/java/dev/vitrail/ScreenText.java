@@ -219,6 +219,16 @@ public final class ScreenText {
 	public static final String RELOAD_FAILED = "options.vitrail.reload_failed";
 
 	/**
+	 * The third key, and Iris's {@code keybind.toggleShaders}, with the lines it says once it has
+	 * read: Iris's own three. {@link #SHADERS_TOGGLED} takes the pack's file name and
+	 * {@link #TOGGLE_FAILED} why nothing was turned on.
+	 */
+	public static final String TOGGLE_SHADERS = "key.vitrail.toggle_shaders";
+	public static final String SHADERS_TOGGLED = "options.vitrail.shaders_toggled";
+	public static final String SHADERS_TURNED_OFF = "options.vitrail.shaders_turned_off";
+	public static final String TOGGLE_FAILED = "options.vitrail.toggle_failed";
+
+	/**
 	 * The chat line said once, the first time a world is shown on a backend this engine is not
 	 * written for. Three arguments: the backend's name, then the two labels the game itself ships
 	 * for the setting and for its Vulkan entry. Those two are the game's keys and not ours, the one
