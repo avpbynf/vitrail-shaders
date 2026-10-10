@@ -345,12 +345,19 @@ wrong is silent and the cost of the guard is one draw.
 
 **The cracks over a block being mined** are the second of those four, drawn from a mesh of the
 game's, the block format, and they are here rather than with the terrain because the game submits
-them through these same feature renderers. Leaving them to the game is not the neutral answer it
-looks like: the game draws them among the translucent features, which is the stretch the full-screen
-layer catches, and that layer is cleared to transparent black and composed as though every draw in it
-blended by alpha. The crumbling multiplies instead, so left there it multiplies against the clear
-and the cracks come out opaque black rather than darkening the face they lie on. Served, the multiply
-lands on the picture, which is where the game meant to put it.
+them through these same feature renderers. They are two pieces of one program, as the glint is,
+because what they lie on decides which half of the frame the game draws them in: 26.3 draws the
+crack over a translucent block among the translucent features and the crack over every other block
+among the solid ones, and 26.2 drew every crack among the translucent ones. The open window picks
+the piece, and the plan walks `gbuffers_damagedblock` on both sides of the deferred stage so that
+each piece has the pack's draw buffers to write. Leaving either to the game is not the neutral
+answer it looks like. Among the translucent features they land on the full-screen layer, which is
+cleared to transparent black and composed as though every draw in it blended by alpha; the
+crumbling multiplies instead, so it multiplies against the clear and the cracks come out opaque
+black rather than darkening the face they lie on. Among the solid features they land on the game's
+own target under the scene seed, and a crack writes no depth, so the seed's cut never carries it
+in and the block breaks with no crack on it at all. Served, the multiply lands on the pack's
+picture, which is where the game meant to put it.
 
 **The block outline** is the third of those four, drawn from the lines format of the game's, and it
 is the one the full-screen layer could not carry at all rather than carry flat. The layer is composed

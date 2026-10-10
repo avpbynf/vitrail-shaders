@@ -127,7 +127,9 @@ import java.util.stream.Stream;
  * that are one: it is one of the two pieces served here that are not drawn from an entity mesh, the
  * cracks over a mined block being the other, and the only one whose pipeline carries more than one
  * render type's worth of answers. {@link #GLINT_EARLY}
- * carries what that costs it, which is four pieces where every other family has one per table.
+ * carries what that costs it, which is four pieces where every other family has one per table. The
+ * cracks share half of that cost and none of the reason: one render type, but two moments, which
+ * {@link #CRUMBLING_EARLY} carries.
  * <p>
  * <strong>The hand comes in by this same door and is not one of those.</strong> {@link HandDraw}
  * moves it off the game's late call and submits it twice, and both submissions are
@@ -242,15 +244,15 @@ public final class EntityDraw extends FamilyDraw {
 	 *                      phases for a hand piece, which Iris poses around each of its two passes
 	 *                      ({@code pathways/HandRenderer.java:106,143})
 	 * @param afterDeferred whether this piece's PASS is drawn after the deferred stage. True for
-	 *                      the hand's water rows alone. A hand row answers the side with this flag
-	 *                      and never with {@link #blended()}, its pipeline being the mob's and its
-	 *                      moment its pass's; an entity row answers with {@link #blended()}, and
-	 *                      carries false here
+	 *                      the hand's water rows and the late glint and crack pieces. A hand, glint
+	 *                      or crack row answers the side with this flag and never with
+	 *                      {@link #blended()}, its moment being its pass's or its carrier's; an
+	 *                      entity row answers with {@link #blended()}, and carries false here
 	 * @param fullbright    whether the game draws this piece at full light, so that the light map
 	 *                      names are answered with a constant and the sampler behind them with one
-	 *                      white texel. True for the eyes and the crumbling rows of {@link #FIXED}
-	 *                      and no other so far; the lines rows there answer their light with the
-	 *                      constant and keep the real light map behind it, as Iris does.
+	 *                      white texel. True for the eyes rows of {@link #FIXED} and the two crack
+	 *                      pieces and no other so far; the lines rows there answer their light with
+	 *                      the constant and keep the real light map behind it, as Iris does.
 	 *                      <strong>A column of the row and not a reading of the program name</strong>,
 	 *                      which is where Iris keeps it as well: its lighting model hangs off the
 	 *                      {@code ShaderKey} ({@code pipeline/programs/ShaderKey.java:44,45}), and
@@ -431,8 +433,8 @@ public final class EntityDraw extends FamilyDraw {
 			}
 
 			// One crumbling contract, the camera's, answering the light map at full light: the map
-			// files no twin for it, the FIXED row's javadoc saying why the reference's map never
-			// receives this draw.
+			// files no twin for it, the javadoc of CRUMBLING_EARLY saying why the reference's map
+			// never receives this draw.
 			if (crumbling()) {
 				return VertexInputs.CRUMBLING;
 			}
@@ -508,13 +510,22 @@ public final class EntityDraw extends FamilyDraw {
 		 * sort looking at the item's own quads and not at the foil hung on them
 		 * ({@code SubmitNodeCollection.java:325}). So one glint row is drawn before the deferred stage
 		 * although it blends, which is the arm's position exactly.
+		 * <p>
+		 * <strong>A crack row is asked of its row for the glint's reason</strong>, with the block it
+		 * lies on as the carrier. 26.3 files the crack over a translucent block among the translucent
+		 * features and the crack over every other block among the SOLID ones
+		 * ({@code SubmitNodeCollection.submitBreakingBlockModel} and {@code submitCrumblingOverlay}),
+		 * so the common crack is drawn before the deferred stage although its pipeline multiplies.
+		 * Asked of the blend, that piece was bound to the late side and {@link #inWindow} refused it in
+		 * the window it really arrives in, which put it on the game's target under the scene seed with
+		 * no depth of its own for the seed's cut to carry: the block broke with no crack on it.
 		 */
 		boolean afterStage() {
 			if (shadow()) {
 				return false;
 			}
 
-			return (hand() || glint()) ? this.afterDeferred : blended();
+			return (hand() || glint() || crumbling()) ? this.afterDeferred : blended();
 		}
 
 		/**
@@ -1198,13 +1209,13 @@ public final class EntityDraw extends FamilyDraw {
 	 */
 	private static void shadowTwins(Map<RenderPipeline, Element> from) {
 		from.values().stream()
-				// No twin for the lines either, on the crumbling's argument: Iris keys two of the
-				// three to SHADOW_LINES (pipeline/IrisPipelines.java:116,118) and its shadow stage
-				// replays only what it submits itself, so the key sits unused there, and the light's
-				// walk here submits the same two families (ShadowGeometry.walk). A twin would be a
+				// No twin for the lines, on the crack's argument (CRUMBLING_EARLY carries it, and
+				// neither crack piece is in a table this files from): Iris keys two of the three to
+				// SHADOW_LINES (pipeline/IrisPipelines.java:116,118) and its shadow stage replays
+				// only what it submits itself, so the key sits unused there, and the light's walk
+				// here submits the same two families (ShadowGeometry.walk). A twin would be a
 				// compiled module nothing selects.
-				.filter(mob -> mob.pipeline() != RenderPipelines.ENTITY_SHADOW
-						&& mob.pipeline() != RenderPipelines.CRUMBLING && !mob.lines())
+				.filter(mob -> mob.pipeline() != RenderPipelines.ENTITY_SHADOW && !mob.lines())
 				.map(mob -> {
 					if (!mob.movingBlock()) {
 						return new Element(mob.pipeline(), "shadow_" + mob.element(), SHADOW_ENTITIES,
@@ -1305,8 +1316,85 @@ public final class EntityDraw extends FamilyDraw {
 	}
 
 	/**
-	 * The pieces whose program does not depend on what else is going on, which is the eyes and the
-	 * overlay a block being mined is drawn under.
+	 * The two moments the cracks spreading over a block being mined reach this door in, which are
+	 * two compiled pieces of one program name.
+	 * <p>
+	 * <strong>Here for the reason the eyes are in {@link #FIXED}, and out of that table for the
+	 * glint's.</strong> Iris keys the overlay on a constant, {@code p -> ShaderKey.CRUMBLING}
+	 * ({@code pipeline/IrisPipelines.java:79}), which consults neither the hand nor the block entity
+	 * phase. That phase is the one a twin would really be reached in, a chest being as breakable as
+	 * the stone beside it, and the twin would ask for {@code gbuffers_block} inside a draw Iris keeps
+	 * on {@code gbuffers_damagedblock}. But a row of that table is one piece bound to one side of
+	 * the deferred stage, and the overlay arrives on both: what it lies on decides which half the
+	 * game executes it in, as an item decides for its glint. {@link #element} asks for these two
+	 * ahead of the hand and the block entity mark, where the table stood, and chooses between them by
+	 * the window that is open.
+	 * <p>
+	 * <strong>Which block goes where is the game's sort.</strong> 26.3 files the crack over a
+	 * translucent block in the {@code SubmitNodeCollection.breakingOverlay} phase, which
+	 * {@code FeatureRenderDispatcher.PreparedFrame.executeTranslucent} runs between the translucent
+	 * blocks and the water mask, and the crack over every other block in the SOLID phase
+	 * ({@code SubmitNodeCollection.submitBreakingBlockModel} and {@code submitCrumblingOverlay}, each
+	 * choosing on the block's own translucency). So the common case is the early piece, drawn among
+	 * the opaque features onto the pack's own gbuffer exactly where Iris draws it, and the late one is
+	 * glass and ice. 26.2 filed every crack in the overlay phase, so there the late piece is the only
+	 * one ever reached.
+	 * <p>
+	 * The key is {@code ProgramId.DamagedBlock} at a tenth, drawn at full light with the fog off
+	 * ({@code pipeline/programs/ShaderKey.java:61}). The tenth is what {@link #CUTOUT} already is
+	 * here; the name falls back onto the terrain, which is Iris's tree as well. Under {@code NONE}
+	 * and not under {@code DESTROY}, which the stage enum carries and nobody poses: Iris declares that
+	 * phase too ({@code pipeline/WorldRenderingPhase.java:20}) and never sets it, so a pack reading
+	 * {@code renderStage} here reads what it reads there.
+	 * <p>
+	 * <strong>It is the one family of this door drawn from a mesh of the world.</strong> The game
+	 * binds {@code DefaultVertexFormat.BLOCK} for it, four elements and no normal, where every other
+	 * row is the entity mesh or the glint's two: {@link VertexInputs#CRUMBLING} is the contract that
+	 * reads it and {@code CrumblingVertex} carries what the four answer for and what the missing
+	 * normal costs.
+	 * <p>
+	 * <strong>Leaving either piece to the game is not the neutral answer it looks like.</strong> The
+	 * pipeline multiplies, {@code DST_COLOR} by {@code SRC_COLOR}, and writes no depth. Left to the
+	 * game in the late window it lands in {@link FeatureLayer}, which is cleared to transparent black
+	 * and composed as though every draw caught in it blended by alpha, so it multiplies against the
+	 * clear and every crack comes out black. Left to the game in the early window it lands on the
+	 * game's own target under the scene seed, and with no depth of its own the seed's cut never
+	 * carries it in, so the block breaks with no crack on it at all. Served, it multiplies onto the
+	 * colour the pack's gbuffer holds, which is where the game would have put it.
+	 * <p>
+	 * <strong>The early piece writes the coverage mask as every early piece of this door
+	 * does</strong>, {@link Element#covers} saying why, and it is what owns draw buffer nought: the
+	 * mask takes the crack's own depth, which stands at or in front of the face it lies on, so the
+	 * seed finds nothing drawn in front and leaves the multiplied pixel alone. That needs the plan to
+	 * have walked {@code gbuffers_damagedblock} on the near side as well, which
+	 * {@code ChainPlan.NAMED_PROGRAMS} does; without it the piece had no draw buffers to own.
+	 * <p>
+	 * <strong>Neither piece has a shadow twin, and that is Iris's map rather than a
+	 * divergence.</strong> Iris holds a shadow key for this pipeline,
+	 * {@code assignToShadow(RenderPipelines.CRUMBLING, p -> ShaderKey.SHADOW_TEX)}
+	 * ({@code pipeline/IrisPipelines.java:95}), but its shadow stage replays only what it submits
+	 * itself, the entities and the block entities ({@code shadows/ShadowRenderer.java:572,580}), so
+	 * the overlay over a mined block never reaches its map and the key sits unused. Here the light's
+	 * walk replays the game's whole feature window, overlay included, so a filed twin fed the map a
+	 * draw the reference never makes. What that draw wrote there was the map's COLOUR half alone,
+	 * the vanilla state keeping its depth write off ({@code RenderPipelines.CRUMBLING}, kept by
+	 * {@code EntityProgram.intoMap}); a pack reading {@code shadowcolor} then tints the sun with the
+	 * crack, and the face being mined wears a crack-shaped shadow. Neither piece is in a table
+	 * {@link #shadowTwins} files from, so the walk finds no row and drops the draw.
+	 */
+	private static final Element CRUMBLING_EARLY = crumbling("crumbling", false);
+
+	private static final Element CRUMBLING_LATE = crumbling("crumbling_late", true);
+
+	/** One of those two: the game's own overlay pipeline, on the side of the deferred stage given. */
+	private static Element crumbling(String element, boolean afterDeferred) {
+		return new Element(RenderPipelines.CRUMBLING, element, DAMAGED_BLOCK, CUTOUT,
+				RenderStage.NONE, afterDeferred, true);
+	}
+
+	/**
+	 * The pieces whose program does not depend on what else is going on and that are drawn on one
+	 * side of the deferred stage, the eyes first among them.
 	 * <p>
 	 * <strong>A table of its own because Iris keys these rows differently, and the difference is
 	 * exactly what a twin would destroy.</strong> Most rows of {@link #ELEMENTS} reach Iris through
@@ -1377,46 +1465,10 @@ public final class EntityDraw extends FamilyDraw {
 	 * declared {@code LightingModel.LIGHTMAP} ({@code pipeline/programs/ShaderKey.java:79}) where the
 	 * two the camera reaches are {@code FULLBRIGHT} ({@code :44,45}), so the twins take the row every
 	 * other caster gets rather than the full light of their own side.
-	 *
-	 * <h4>The cracks over a block being mined</h4>
-	 *
-	 * <strong>The second family here, and it is here for the reason the eyes are.</strong> Iris keys
-	 * it on a constant, {@code p -> ShaderKey.CRUMBLING} ({@code pipeline/IrisPipelines.java:79}),
-	 * which consults neither the hand nor the block entity phase. That phase is the one a twin would
-	 * really be reached in, a chest being as breakable as the stone beside it, and the twin would ask
-	 * for {@code gbuffers_block} inside a draw Iris keeps on {@code gbuffers_damagedblock}.
 	 * <p>
-	 * The key is {@code ProgramId.DamagedBlock} at a tenth, drawn at full light with the fog off
-	 * ({@code pipeline/programs/ShaderKey.java:61}). The tenth is what {@link #CUTOUT} already is
-	 * here; the name falls back onto the terrain, which is Iris's tree as well.
-	 * <p>
-	 * <strong>It is the one row of this door drawn from a mesh of the world.</strong> The game binds
-	 * {@code DefaultVertexFormat.BLOCK} for it, four elements and no normal, where every other row is
-	 * the entity mesh or the glint's two: {@link VertexInputs#CRUMBLING} is the contract that reads it
-	 * and {@code CrumblingVertex} carries what the four answer for and what the missing normal costs.
-	 * <p>
-	 * <strong>Leaving it to the game is not the neutral answer it looks like.</strong> The game draws
-	 * it in the {@code SubmitNodeCollection.breakingOverlay} phase, which
-	 * {@code FeatureRenderDispatcher.PreparedFrame.executeTranslucent} runs between the translucent
-	 * blocks and the water mask, and that call is the stretch {@code PackChain.openFeatures}
-	 * redirects into {@link FeatureLayer}; that
-	 * layer is cleared to transparent black and composed as though every draw caught in it blended by
-	 * alpha. This pipeline multiplies instead, {@code DST_COLOR} by {@code SRC_COLOR}, so left there
-	 * it multiplies against the clear and every crack comes out black. Served, it multiplies onto the
-	 * colour the chain composed, which is where the game would have put it.
-	 * <p>
-	 * <strong>It has no shadow twin here, and that is Iris's map rather than a divergence.</strong>
-	 * Iris holds a shadow key for this pipeline,
-	 * {@code assignToShadow(RenderPipelines.CRUMBLING, p -> ShaderKey.SHADOW_TEX)}
-	 * ({@code pipeline/IrisPipelines.java:95}), but its shadow stage replays only what it submits
-	 * itself, the entities and the block entities
-	 * ({@code shadows/ShadowRenderer.java:572,580}), so the overlay over a mined block never
-	 * reaches its map and the key sits unused. Here the light's walk replays the game's whole
-	 * translucent feature window, overlay included, so a filed twin fed the map a draw the
-	 * reference never makes. What that draw wrote there was the map's COLOUR half alone, the
-	 * vanilla state keeping its depth write off ({@code RenderPipelines.CRUMBLING}, kept by
-	 * {@code EntityProgram.intoMap}); a pack reading {@code shadowcolor} then tints the sun with
-	 * the crack, and the face being mined wears a crack-shaped shadow.
+	 * <strong>The cracks over a block being mined are keyed the same way and are not in this
+	 * table</strong>: a row here is one piece bound to one side of the deferred stage, and the
+	 * overlay arrives on both. {@link #CRUMBLING_EARLY} carries them.
 	 */
 	private static final Map<RenderPipeline, Element> FIXED = new LinkedHashMap<>();
 
@@ -1426,11 +1478,6 @@ public final class EntityDraw extends FamilyDraw {
 		FIXED.put(RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE,
 				new Element(RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE, "eyes_emissive", SPIDER_EYES,
 						CUTOUT, RenderStage.NONE, false, true));
-		// Under NONE and not under DESTROY, which the stage enum carries and nobody poses: Iris
-		// declares that phase too (pipeline/WorldRenderingPhase.java:20) and never sets it, so a pack
-		// reading renderStage here reads what it reads there.
-		FIXED.put(RenderPipelines.CRUMBLING, new Element(RenderPipelines.CRUMBLING, "crumbling",
-				DAMAGED_BLOCK, CUTOUT, RenderStage.NONE, false, true));
 		// MovingBlockFeatureRenderer uses these three pipelines for falling blocks and blocks carried
 		// by pistons. Iris assigns them directly rather than consulting the entity, block-entity or
 		// hand phase (IrisPipelines.java:25-30), so they belong in this fixed table too.
@@ -1482,9 +1529,9 @@ public final class EntityDraw extends FamilyDraw {
 	 * After the hand, because which of its four pieces answers is a question about the MOMENT, and
 	 * the hand's two passes are two of the four moments.
 	 * <p>
-	 * <strong>{@link #FIXED} is asked before all three, and that is the same fidelity read from the
-	 * other end.</strong> Those rows are constants in Iris's own table rather than calls into the
-	 * three functions that test anything ({@code pipeline/IrisPipelines.java:52,53}), so no mark of
+	 * <strong>{@link #FIXED} is asked before all three, with the crack's two pieces right behind it,
+	 * and that is the same fidelity read from the other end.</strong> Those rows are constants in
+	 * Iris's own table rather than calls into the three functions that test anything ({@code pipeline/IrisPipelines.java:52,53}), so no mark of
 	 * ours may reach them either. What being asked LATER would cost is not the wrong program but no
 	 * program at all: the three tables the marks select are each derived from {@link #ELEMENTS} alone,
 	 * which has no eyes row, so an eye drawn while the arm was up or on a mob standing where a chest
@@ -1514,6 +1561,13 @@ public final class EntityDraw extends FamilyDraw {
 			return fixed;
 		}
 
+		// Where the table's row for it stood and for the table's reason, a constant in Iris that
+		// consults neither mark; the window chooses the piece, as it does for the glint below, the
+		// block a crack lies on deciding which of the game's two halves it is executed in.
+		if (pipeline == RenderPipelines.CRUMBLING) {
+			return translucentFeatures ? CRUMBLING_LATE : CRUMBLING_EARLY;
+		}
+
 		if (HandDraw.drawing()) {
 			if (pipeline == RenderPipelines.GLINT) {
 				return HandDraw.drawingSolid() ? GLINT_HAND : GLINT_HAND_WATER;
@@ -1522,10 +1576,11 @@ public final class EntityDraw extends FamilyDraw {
 			return (HandDraw.drawingSolid() ? HAND_ELEMENTS : HAND_WATER_ELEMENTS).get(pipeline);
 		}
 
-		// The window decides which of the two picture pieces answers, and it is the only place in this
-		// class where a window is read to CHOOSE a row rather than to refuse one. It has to be: the two
-		// differ in the side of the deferred stage they are bound against, and nothing about a glint
-		// draw says which of the game's two halves it was submitted into.
+		// The window decides which of the two picture pieces answers, and it is one of the two places
+		// in this class where a window is read to CHOOSE a row rather than to refuse one, the crack's
+		// above being the other. It has to be: the two differ in the side of the deferred stage they
+		// are bound against, and nothing about a glint draw says which of the game's two halves it
+		// was submitted into.
 		if (pipeline == RenderPipelines.GLINT) {
 			return translucentFeatures ? GLINT_LATE : GLINT_EARLY;
 		}
@@ -1714,8 +1769,8 @@ public final class EntityDraw extends FamilyDraw {
 	 * Whether the window this piece is drawn in is the one that is open.
 	 * <p>
 	 * Asked of {@code Element.afterStage} and not of the blend, which is the same answer for every row
-	 * whose pipeline decides its half and the right one for the glint, whose pipeline does not: a
-	 * glint blends and is executed in whichever window its carrier was submitted into.
+	 * whose pipeline decides its half and the right one for the glint and the crack, whose pipelines
+	 * do not: both blend and are executed in whichever window their carrier was submitted into.
 	 */
 	private static boolean inWindow(Element element) {
 		if (element.shadow()) {
@@ -2339,9 +2394,20 @@ public final class EntityDraw extends FamilyDraw {
 			//
 			// And the lines apart from the eyes, on the same argument one step further: the line
 			// program walks its own chain too, and a place that could not answer for it would
-			// otherwise take the eyes and the breaking overlay back to the game with the outline.
+			// otherwise take the eyes and the moving blocks back to the game with the outline.
 			groups.add(eyes.stream().filter(element -> !element.lines()).toList());
 			groups.add(eyes.stream().filter(Element::lines).toList());
+
+			// A group of its own for each crack piece, on the glint's argument below: a crack is
+			// drawn ON TOP of a block rather than beside anything, so a piece this place cannot
+			// answer for goes back to the game alone. It matters more for the early piece than it
+			// looks: that one asks for the near side of gbuffers_damagedblock, which writes() can
+			// refuse on the seed's account where the far side never could be, and inside the eyes'
+			// group that refusal would have taken the eyes and the moving blocks with it.
+			if (decodable(CRUMBLING_EARLY)) {
+				groups.add(List.of(CRUMBLING_EARLY));
+				groups.add(List.of(CRUMBLING_LATE));
+			}
 		}
 
 		if (HandDraw.wanted()) {

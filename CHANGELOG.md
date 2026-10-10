@@ -15,6 +15,11 @@ what the next one holds.
 
 ### Fixed
 
+- **Mining a block shows its cracks again on 26.3.** With a shader pack loaded, the crack overlay
+  never appeared and the block simply broke. 26.3 draws the crack over an ordinary block earlier in
+  the frame than 26.2 did, among the solid features, and Vitrail was only waiting for it among the
+  translucent ones. It is now drawn with the pack's `gbuffers_damagedblock` at either moment, so the
+  crack over stone and the crack over glass both show.
 - **Bliss-based packs draw again, Eclipse among them.** Three things refused them, each on its
   own enough to turn the whole pack off:
   - A pack may keep data in a one dimensional image. Bliss keeps a line of block data that way,
