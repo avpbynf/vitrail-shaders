@@ -143,6 +143,10 @@ public final class ShaderProperties {
 	// The fifth word of that family, kept apart because it is the one that takes neither a yes nor a
 	// no: a pack writes off, fast or fancy, which are the game's own three cloud settings.
 	private static final Pattern CLOUDS = Pattern.compile("^\\s*clouds\\s*=\\s*(.*)$");
+	// The same three words for the clouds Distant Horizons draws past the world's own, which are a
+	// generic object of that mod's rather than anything of the game's cloud renderer, so the line
+	// above never reaches them.
+	private static final Pattern DH_CLOUDS = Pattern.compile("^\\s*dhClouds\\s*=\\s*(.*)$");
 	// And the one of that same family that carries two words rather than one, so it has a pattern
 	// of its own: the first says whether the rain and the snow are drawn at all, the second whether
 	// the splashes they leave on the ground are.
@@ -457,6 +461,11 @@ public final class ShaderProperties {
 		// else is a line nothing here reads, and it belongs among the keys that say so.
 		Matcher clouds = CLOUDS.matcher(line);
 		if (clouds.matches() && CloudSetting.of(clouds.group(1).trim()) != null) {
+			return;
+		}
+
+		Matcher dhClouds = DH_CLOUDS.matcher(line);
+		if (dhClouds.matches() && CloudSetting.of(dhClouds.group(1).trim()) != null) {
 			return;
 		}
 
@@ -1288,6 +1297,32 @@ public final class ShaderProperties {
 			Boolean value = truth(line.group(1).trim());
 			if (value != null) {
 				asked = value;
+			}
+		}
+
+		return asked;
+	}
+
+	/**
+	 * What the pack asked of the clouds Distant Horizons draws past the world's own, live lines only,
+	 * or {@link CloudSetting#DEFAULT} where no live line says anything this can read.
+	 * <p>
+	 * Iris reads the same word into a setting of its own ({@code getDHCloudSetting}) and answers DH
+	 * with it in {@code compat/dh/DHCompatInternal.java:290}: the far clouds are kept out where it
+	 * says {@code off}, and where it says nothing they follow {@code clouds}, so a pack that switched
+	 * the game's clouds off for clouds of its own does not have DH's drawn back over them.
+	 * <p>
+	 * Live lines for the reason {@link #dhShadow} gives: the packs that write it write it under an
+	 * {@code #ifdef DISTANT_HORIZONS}.
+	 *
+	 * @param defines the pack's settings, which decide which lines of the file are alive at all
+	 */
+	public CloudSetting dhClouds(Map<String, String> defines) {
+		CloudSetting asked = CloudSetting.DEFAULT;
+		for (Matcher line : live(DH_CLOUDS, defines)) {
+			CloudSetting setting = CloudSetting.of(line.group(1).trim());
+			if (setting != null) {
+				asked = setting;
 			}
 		}
 

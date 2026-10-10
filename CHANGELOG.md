@@ -15,6 +15,11 @@ what the next one holds.
 
 ### Fixed
 
+- **Distant Horizons' own clouds stay out of a pack that asks for that.** With Distant Horizons
+  installed, its blocky clouds were drawn over the pack's sky even when the pack writes
+  `dhClouds=off`, as Complementary does. They were hardest to miss under blindness, where the
+  pack's own clouds go dark and Distant Horizons' stayed bright. They are now held off for as long
+  as such a pack is loaded, as Iris does, and your own Distant Horizons setting is left as it was.
 - **The world border is visible again with a shader pack loaded.** It was drawn every frame and
   then painted over by the pack's own image, so walking up to the border showed nothing at all. It
   is now carried onto the pack's image, drawn by the game as it is without a pack.
