@@ -1959,7 +1959,8 @@ public final class PackChain {
 	/**
 	 * Redirects the game's translucent features, the player's body among them, into the layer that
 	 * will hand them to the pack's image. Called once the early half has run, and undone by
-	 * {@link #closeFeatures()}: the pair brackets exactly the game's {@code executeTranslucent}.
+	 * {@link #closeFeatures()}: the pair brackets the game's {@code executeTranslucent}. On 26.3
+	 * it also brackets the separate {@code executeSeeThrough} phase after terrain and outlines.
 	 * <p>
 	 * The switch is the game's own, the one it throws around its always-on-top features. The colour
 	 * goes to the layer; the depth keeps pointing at the world's, so the redirected draws still
@@ -2077,12 +2078,12 @@ public final class PackChain {
 	}
 
 	/**
-	 * Puts the game's overrides back and composes the layer onto the half of the pack's target the
-	 * world's translucents are about to blend onto, which keeps vanilla's order: features first,
-	 * then water.
+	 * Puts the game's overrides back and composes the layer onto the pack's after-deferred target.
+	 * The translucent feature window closes before water; 26.3's separate see-through window closes
+	 * after terrain and outlines. Both keep the game's phase order.
 	 * <p>
 	 * <strong>That order was doubted and it is measured, so it is written down here rather than
-	 * doubted again.</strong> {@code LevelRenderer.addMainPass} runs, in this order and in one lambda:
+	 * doubted again.</strong> 26.2's {@code LevelRenderer.addMainPass} runs, in this order and in one lambda:
 	 * the opaque chunk group, {@code AfterOpaqueBlocks}, {@code executeSolid}, {@code
 	 * AfterOpaqueFeatures}, {@code executeTranslucent}, {@code AfterTranslucentFeatures}, {@code
 	 * executeOutline}, the translucent chunk group, {@code AfterTranslucentBlocks}. The features

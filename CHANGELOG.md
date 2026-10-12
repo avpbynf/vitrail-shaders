@@ -71,6 +71,12 @@ what the next one holds.
   stand where the game builds it, sixteen blocks up, so whatever the game drew above that height
   lost to the pack's sky. The sky now counts as infinitely far away, as it does under Iris, which
   also lifts the same cut from the End, where the game builds its sky a hundred blocks out.
+- **The name of a player behind a wall shows again with a pack on, on Minecraft 26.3.** The game
+  does not hide the name of a player standing behind a wall, it dims it, and 26.3 draws that
+  dimmed name on its own after the water and the outlines. Vitrail was not catching that last
+  draw, so the name went into the game's own picture, which the pack's final pass paints over,
+  and it was simply missing. It now reaches the pack's image with the game's other see-through
+  features. The name of a sneaking player stays hidden behind a wall, as it is without a pack.
 
 ## 0.12.0-beta
 

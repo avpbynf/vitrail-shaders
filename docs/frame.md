@@ -311,6 +311,11 @@ They are not lost: the engine redirects the game's colour output for the length 
 composes what it catches onto the pack's target afterwards. It is a second full-screen layer,
 bracketing one phase rather than standing at one seam.
 
+On Minecraft 26.3 it brackets a second. That game draws the text it shows through a wall, the name
+of a player standing behind one, in a call of its own after the translucent terrain and the
+outlines, and that text lands in the game's target like the rest. The layer is opened around that
+call too, emptied and composed a second time in the frame.
+
 ### The hand is the one family the engine has to move rather than intercept
 
 The player's own hand is drawn *after* the level returns, which is after the chain has run: the game
