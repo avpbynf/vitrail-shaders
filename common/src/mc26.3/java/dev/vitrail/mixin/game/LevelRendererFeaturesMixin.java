@@ -1,9 +1,13 @@
 package dev.vitrail.mixin.game;
 
+import dev.vitrail.render.EntityDraw;
 import dev.vitrail.render.GameRender;
+import dev.vitrail.render.PackChain;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.renderpearl.api.commands.RenderPass;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
@@ -40,6 +44,33 @@ public abstract class LevelRendererFeaturesMixin {
 			original.call(frame, layer);
 		} finally {
 			layer.close();
+		}
+	}
+
+	/**
+	 * 26.3 draws through-wall labels after terrain, outside the translucent feature window.
+	 * Keep them in the pack's image so its final pass cannot overwrite them on the main target.
+	 */
+	@WrapMethod(method = "executeSeeThrough", require = 1)
+	private void vitrail$seeThrough(FeatureRenderDispatcher.PreparedFrame frame, RenderTarget target,
+			Operation<Void> original) {
+		PackChain.openFeatures();
+		try {
+			RenderPass layer = GameRender.featuresPass();
+			if (layer == null) {
+				original.call(frame, target);
+
+				return;
+			}
+
+			EntityDraw.translucentFeatures(true);
+			try (layer) {
+				frame.executeSeeThrough(layer);
+			} finally {
+				EntityDraw.translucentFeatures(false);
+			}
+		} finally {
+			PackChain.closeFeatures();
 		}
 	}
 }
