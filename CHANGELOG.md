@@ -11,7 +11,7 @@ publishing a jar named after one thing and built from another.
 Everything is a pre-release while the version stays under `1.0.0`. Nothing here is a promise about
 what the next one holds.
 
-## Unreleased
+## 0.13.0-beta
 
 ### Added
 
@@ -32,7 +32,7 @@ what the next one holds.
   draws the far terrain, Vitrail holds off Distant Horizons' own fog and ambient occlusion, and
   its clouds wherever a pack asks. The menu showed those lines locked and "controlled by
   UNKNOWN", and Distant Horizons wrote a warning in the log for each. They are now held under
-  Vitrail's name.
+  Vitrail's name, on a Distant Horizons recent enough to take one.
 - **Mining a block shows its cracks again on 26.3.** With a shader pack loaded, the crack overlay
   never appeared and the block simply broke. 26.3 draws the crack over an ordinary block earlier in
   the frame than 26.2 did, among the solid features, and Vitrail was only waiting for it among the
@@ -43,8 +43,8 @@ what the next one holds.
   26.2 drew them with the translucent ones, and Vitrail only served them at the later moment, so
   the game painted the colours itself underneath the pack's cloth. They are drawn with the pack's
   translucent block program at the moment the game draws them, as under Iris.
-- **Bliss-based packs draw again, Eclipse among them.** Three things refused them, each on its
-  own enough to turn the whole pack off:
+- **Bliss-based packs draw again, Eclipse among them.** Three things stood in their way, the
+  first two enough to turn the whole pack off:
   - A pack may keep data in a one dimensional image. Bliss keeps a line of block data that way,
     and the game's shader checks refused every program reading it, the pack's composites among
     them. One dimensional images now pass those checks, as three dimensional ones already did.
@@ -80,8 +80,13 @@ what the next one holds.
   does not hide the name of a player standing behind a wall, it dims it, and 26.3 draws that
   dimmed name on its own after the water and the outlines. Vitrail was not catching that last
   draw, so the name went into the game's own picture, which the pack's final pass paints over,
-  and it was simply missing. It now reaches the pack's image with the game's other see-through
-  features. The name of a sneaking player stays hidden behind a wall, as it is without a pack.
+  and it was simply missing. It is now drawn by the pack like the name of a player in the open,
+  dimmed as the game dims it. The name of a sneaking player stays hidden behind a wall, as it is
+  without a pack.
+
+Thanks to elNino0916 for the toggle key, the Distant Horizons clouds and the crack, Jolymmiles for
+the Bliss-based packs and the test net, JakobMusix for the beacon beam, DebZakari for the names
+behind walls, and Heerless for digging into the bells crash.
 
 ## 0.12.0-beta
 
