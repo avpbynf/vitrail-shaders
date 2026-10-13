@@ -1741,7 +1741,9 @@ public final class EntityDraw extends FamilyDraw {
 	 * <p>
 	 * On 26.3 it is opened a second time in a frame, around the game's {@code executeSeeThrough}:
 	 * the text read through a wall is a blending row like the others, and that game draws it after
-	 * the translucent terrain and the outlines, past both events.
+	 * the translucent terrain and the outlines, past both events. That second opening stands alone,
+	 * with no layer under it: the six text rows are served by this door, so the window is all the
+	 * phase needs ({@code LevelRendererFeaturesMixin} of 26.3).
 	 */
 	public static void translucentFeatures(boolean drawing) {
 		translucentFeatures = drawing;

@@ -100,9 +100,6 @@ public final class GameRender {
 	 * A {@link LevelPass} and not a plain pass, for the reason {@link #renderAllFeatures} gives: the
 	 * entity door records a run of draws the pack serves into a pass of its own, and this one has to
 	 * step aside for it. Nothing is emptied, the layer having been emptied where it was opened.
-	 * <p>
-	 * The text this game draws through a wall, after the terrain, takes a pass here the same way,
-	 * under a redirect of its own.
 	 */
 	public static @Nullable RenderPass featuresPass() {
 		GpuTextureView colour = featuresColour;
