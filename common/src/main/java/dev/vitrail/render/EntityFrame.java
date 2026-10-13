@@ -18,9 +18,10 @@ package dev.vitrail.render;
  * and which has nothing in it to get wrong.
  * <p>
  * <strong>Nothing here names an API of the game</strong>, which is what lets the off-game harness
- * compile it and measure the numbers. That harness is the only witness this arithmetic has: the
- * values reach the shader as bytes read straight off the element, so no generated text stands
- * between the two sides and there is nothing in the game to read back and compare.
+ * compile it and measure the numbers, and {@code EntityFrameTest} hold its words and its size. Those
+ * two are the only witnesses this arithmetic has: the values reach the shader as bytes read straight
+ * off the element, so no generated text stands between the two sides and there is nothing in the
+ * game to read back and compare.
  * <p>
  * The arithmetic is Iris's, {@code vertices/NormalHelper.computeTangent} and
  * {@code computeTangentSmooth}, and it is the standard tangent of a triangle: the two texture
@@ -121,6 +122,15 @@ public final class EntityFrame {
 	 * The first three and no more, whether the polygon has three corners or four: three corners
 	 * already give both texture gradients, and this is Iris's own reading as well.
 	 *
+	 * <p>
+	 * <strong>Three methods and not one, and each has to stay at or under 325 bytes of
+	 * bytecode.</strong> That is the most C2 inlines of a hot method ({@code FreqInlineSize}). Written
+	 * as one method the arithmetic is 494 bytes, and every quad
+	 * {@link dev.vitrail.sodium.EntityMeshSerializer} converts would pay a call with nineteen float
+	 * arguments: measured off-game over a field of mobs, about a quarter of the serializer's time. In
+	 * three pieces it inlines whole. Each piece hands the next the values it computed, in the order
+	 * one method would, so the split changes no word.
+	 *
 	 * @param flatten whether the corners are first flattened onto the plane the normal stands on,
 	 *                which is what Iris does for a polygon lit from a normal per corner
 	 *                ({@code NormalHelper.computeTangentSmooth}) and not for one lit flat. Left out
@@ -131,36 +141,34 @@ public final class EntityFrame {
 			float x0, float y0, float z0, float u0, float v0,
 			float x1, float y1, float z1, float u1, float v1,
 			float x2, float y2, float z2, float u2, float v2) {
-		float px0 = x0;
-		float py0 = y0;
-		float pz0 = z0;
-		float px1 = x1;
-		float py1 = y1;
-		float pz1 = z1;
-		float px2 = x2;
-		float py2 = y2;
-		float pz2 = z2;
-		if (flatten) {
-			float onto0 = x0 * normalX + y0 * normalY + z0 * normalZ;
-			float onto1 = x1 * normalX + y1 * normalY + z1 * normalZ;
-			float onto2 = x2 * normalX + y2 * normalY + z2 * normalZ;
-			px0 -= onto0 * normalX;
-			py0 -= onto0 * normalY;
-			pz0 -= onto0 * normalZ;
-			px1 -= onto1 * normalX;
-			py1 -= onto1 * normalY;
-			pz1 -= onto1 * normalZ;
-			px2 -= onto2 * normalX;
-			py2 -= onto2 * normalY;
-			pz2 -= onto2 * normalZ;
+		if (!flatten) {
+			return gradients(normalX, normalY, normalZ, x0, y0, z0, u0, v0, x1, y1, z1, u1, v1,
+					x2, y2, z2, u2, v2);
 		}
 
-		float edge1x = px1 - px0;
-		float edge1y = py1 - py0;
-		float edge1z = pz1 - pz0;
-		float edge2x = px2 - px0;
-		float edge2y = py2 - py0;
-		float edge2z = pz2 - pz0;
+		float onto0 = x0 * normalX + y0 * normalY + z0 * normalZ;
+		float onto1 = x1 * normalX + y1 * normalY + z1 * normalZ;
+		float onto2 = x2 * normalX + y2 * normalY + z2 * normalZ;
+		return gradients(normalX, normalY, normalZ,
+				x0 - onto0 * normalX, y0 - onto0 * normalY, z0 - onto0 * normalZ, u0, v0,
+				x1 - onto1 * normalX, y1 - onto1 * normalY, z1 - onto1 * normalZ, u1, v1,
+				x2 - onto2 * normalX, y2 - onto2 * normalY, z2 - onto2 * normalZ, u2, v2);
+	}
+
+	/**
+	 * The two texture gradients over corners already where {@link #tangent} wants them: the tangent
+	 * along U and the bitangent along V, both still at the length the inversion gave.
+	 */
+	private static int gradients(float normalX, float normalY, float normalZ,
+			float x0, float y0, float z0, float u0, float v0,
+			float x1, float y1, float z1, float u1, float v1,
+			float x2, float y2, float z2, float u2, float v2) {
+		float edge1x = x1 - x0;
+		float edge1y = y1 - y0;
+		float edge1z = z1 - z0;
+		float edge2x = x2 - x0;
+		float edge2y = y2 - y0;
+		float edge2z = z2 - z0;
 
 		float du1 = u1 - u0;
 		float dv1 = v1 - v0;
@@ -173,9 +181,18 @@ public final class EntityFrame {
 		float span = du1 * dv2 - du2 * dv1;
 		float scale = span == 0.0F ? 1.0F : 1.0F / span;
 
-		float tx = scale * (dv2 * edge1x - dv1 * edge2x);
-		float ty = scale * (dv2 * edge1y - dv1 * edge2y);
-		float tz = scale * (dv2 * edge1z - dv1 * edge2z);
+		return frame(normalX, normalY, normalZ,
+				scale * (dv2 * edge1x - dv1 * edge2x),
+				scale * (dv2 * edge1y - dv1 * edge2y),
+				scale * (dv2 * edge1z - dv1 * edge2z),
+				scale * (-du2 * edge1x + du1 * edge2x),
+				scale * (-du2 * edge1y + du1 * edge2y),
+				scale * (-du2 * edge1z + du1 * edge2z));
+	}
+
+	/** The tangent made a unit, and the side the bitangent puts the third axis on, packed. */
+	private static int frame(float normalX, float normalY, float normalZ, float tx, float ty,
+			float tz, float bx, float by, float bz) {
 		float square = tx * tx + ty * ty + tz * tz;
 		if (square <= TINY) {
 			return FLAT;
@@ -190,9 +207,6 @@ public final class EntityFrame {
 		// the tangent and the normal. Where the two point apart the third axis turns the other way,
 		// and that is the whole of what the fourth component says: a mirrored piece of a skin lights
 		// its bumps as dents without it.
-		float bx = scale * (-du2 * edge1x + du1 * edge2x);
-		float by = scale * (-du2 * edge1y + du1 * edge2y);
-		float bz = scale * (-du2 * edge1z + du1 * edge2z);
 		float side = bx * (ty * normalZ - tz * normalY) + by * (tz * normalX - tx * normalZ)
 				+ bz * (tx * normalY - ty * normalX);
 
