@@ -444,23 +444,47 @@ public final class DhLods {
 		Method enabled = ambientOcclusion.getReturnType().getMethod("enabled");
 		Method dhFog = fog.getReturnType().getMethod("enableDhFog");
 
-		// Both of DH's own setters answer with a boolean, and both are declared on the one config
-		// value interface, so a null value picks the one that gives a switch back to the player.
+		// Both are declared on the one config value interface, which is the type the setters are
+		// asked of.
 		Class<?> configValue = enabled.getReturnType();
-		Method action = value == null
-				? configValue.getMethod("clearValue")
-				: configValue.getMethod("setValue", Object.class);
-		Object[] arguments = value == null ? new Object[0] : new Object[] { value };
 
 		int held = 0;
 		for (Object one : List.of(enabled.invoke(ambientOcclusion.invoke(graphicsConfig)),
 				dhFog.invoke(fog.invoke(graphicsConfig)))) {
-			if (Boolean.TRUE.equals(action.invoke(one, arguments))) {
+			if (set(configValue, one, value)) {
 				held++;
 			}
 		}
 
 		return held;
+	}
+
+	/**
+	 * Sets one of DH's config values through its API, or hands it back to the player when the value
+	 * is null, and answers whether it took.
+	 * <p>
+	 * <strong>Under this mod's name where DH takes one.</strong> Its config value has two setters:
+	 * {@code setValue(value, caller)}, whose second word is what its menu shows beside a value it
+	 * will not let the player move ("Currently controlled by"), and the older {@code setValue(value)},
+	 * which DH marks deprecated, answers that same line with UNKNOWN and logs a warning addressed to
+	 * the mod's author, once for each setting. A DH that only has the older one is still served
+	 * through it.
+	 */
+	private static boolean set(Class<?> configValue, Object one, Boolean value)
+			throws ReflectiveOperationException {
+		if (value == null) {
+			return Boolean.TRUE.equals(configValue.getMethod("clearValue").invoke(one));
+		}
+
+		Method named;
+		try {
+			named = configValue.getMethod("setValue", Object.class, String.class);
+		} catch (NoSuchMethodException e) {
+			return Boolean.TRUE.equals(
+					configValue.getMethod("setValue", Object.class).invoke(one, value));
+		}
+
+		return Boolean.TRUE.equals(named.invoke(one, value, Vitrail.MOD_NAME));
 	}
 
 	/**
@@ -532,12 +556,7 @@ public final class DhLods {
 		Method cloudRendering = genericRendering.getReturnType().getMethod("cloudRenderingEnabled");
 		Object one = cloudRendering.invoke(genericRendering.invoke(graphics.invoke(configs)));
 
-		Class<?> configValue = cloudRendering.getReturnType();
-		Object took = value == null
-				? configValue.getMethod("clearValue").invoke(one)
-				: configValue.getMethod("setValue", Object.class).invoke(one, value);
-
-		return Boolean.TRUE.equals(took);
+		return set(cloudRendering.getReturnType(), one, value);
 	}
 
 	/**

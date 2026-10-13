@@ -28,6 +28,11 @@ what the next one holds.
   `dhClouds=off`, as Complementary does. They were hardest to miss under blindness, where the
   pack's own clouds go dark and Distant Horizons' stayed bright. They are now held off for as long
   as such a pack is loaded, as Iris does, and your own Distant Horizons setting is left as it was.
+- **Distant Horizons' menu says who holds a setting it will not let you move.** Where a pack
+  draws the far terrain, Vitrail holds off Distant Horizons' own fog and ambient occlusion, and
+  its clouds wherever a pack asks. The menu showed those lines locked and "controlled by
+  UNKNOWN", and Distant Horizons wrote a warning in the log for each. They are now held under
+  Vitrail's name.
 - **Mining a block shows its cracks again on 26.3.** With a shader pack loaded, the crack overlay
   never appeared and the block simply broke. 26.3 draws the crack over an ordinary block earlier in
   the frame than 26.2 did, among the solid features, and Vitrail was only waiting for it among the
