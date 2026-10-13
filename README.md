@@ -50,9 +50,10 @@ as one person's side project, worked on every day since July. Contributors
 have joined along the way, and it is still an early one: the backend it runs
 on is marked experimental by the game itself.
 
-It is built the way a lot of software gets built now: AI tools do a real share
-of the typing and the debugging, and a human decides, tests against real packs
-and against Iris, reviews every line and carries the blame for every bug. What
+It is built the way a lot of software gets built now, and it would not exist
+otherwise: AI tools do most of the typing and the debugging, and a human
+decides what gets built, tests it against real packs and against Iris, and
+carries the blame for every bug. What
 was taken from Iris and from Kroppeb's stareval is credited file by file in
 [NOTICE](NOTICE), under the same licence. If any of that matters to you, now you
 know. If the mod is useful, there is a coffee link below, and the issues here
