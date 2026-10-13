@@ -44,6 +44,26 @@ public final class GamePipelines {
 		return RenderPipelines.WOLF_ARMOR_CRACKS;
 	}
 
+	/**
+	 * Whether this game draws a blending pipeline among the SOLID features, before the deferred
+	 * stage, where 26.2 drew it among the translucent ones.
+	 * <p>
+	 * The banner pattern's render type carries {@code withForcedSolidModelPhase} ({@code RenderTypes},
+	 * read with javap on the 26.3 client jar), and {@code SubmitNodeCollection.submitModel} files
+	 * such a type in the solid list whatever its blend. A piece bound to the translucent window alone
+	 * was never served there, and the game drew every banner's colour under the pack's white cloth.
+	 * Iris 26.3 keys the pattern on the program alone ({@code pipeline/IrisPipelines.java:86} on its
+	 * 26.3 branch, {@code getTranslucent}) and draws it in whichever phase the game runs.
+	 * <p>
+	 * Two other types carry the same call and are not named here: the glint's, which come in by the
+	 * glint's own door, and the wolf armour cracks, which Iris 26.3 keys through {@code getCutout}
+	 * onto the opaque entity program ({@code IrisPipelines.java:63}) where 26.2 keyed it translucent,
+	 * so that row owes a program of its own on this game before it owes a phase.
+	 */
+	public static boolean solidPhase(RenderPipeline pipeline) {
+		return pipeline == RenderPipelines.BANNER_PATTERN;
+	}
+
 	/** Null: this game draws a text display's box with the text pipeline. */
 	public static @Nullable RenderPipeline textBackground() {
 		return null;

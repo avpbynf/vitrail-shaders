@@ -38,6 +38,11 @@ what the next one holds.
   the frame than 26.2 did, among the solid features, and Vitrail was only waiting for it among the
   translucent ones. It is now drawn with the pack's `gbuffers_damagedblock` at either moment, so the
   crack over stone and the crack over glass both show.
+- **Banners show their colours and patterns again on 26.3.** With a shader pack loaded, every
+  banner was plain white cloth. 26.3 draws a banner's colour layers among the solid features where
+  26.2 drew them with the translucent ones, and Vitrail only served them at the later moment, so
+  the game painted the colours itself underneath the pack's cloth. They are drawn with the pack's
+  translucent block program at the moment the game draws them, as under Iris.
 - **Bliss-based packs draw again, Eclipse among them.** Three things refused them, each on its
   own enough to turn the whole pack off:
   - A pack may keep data in a one dimensional image. Bliss keeps a line of block data that way,

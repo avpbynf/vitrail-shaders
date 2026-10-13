@@ -165,6 +165,18 @@ public final class ChainPlan {
 					// Not counted, on the hand's argument: a block moves where a piston pushes or sand
 					// falls, a per frame answer no per place map may carry.
 					new NamedProgram("gbuffers_block", true, NOT_EVERYWHERE),
+					// The two blending names on the NEAR side, which 26.3 reaches and 26.2 never does:
+					// that game forces a banner's pattern layers among the solid features
+					// (render/GamePipelines.solidPhase of 26.3), so the block row and the entity row
+					// of the pattern are drawn before the deferreds with their translucent program, as
+					// Iris draws them. Without these two the early piece resolved no attachment and
+					// wrote its one output on the game's target under the seed, and every banner drew
+					// as white cloth.
+					//
+					// Not counted, on the hand's argument: a banner stands where somebody put one, a
+					// per frame answer no per place map may carry.
+					new NamedProgram("gbuffers_block_translucent", false, NOT_EVERYWHERE),
+					new NamedProgram("gbuffers_entities_translucent", false, NOT_EVERYWHERE),
 					// The OPAQUE entity name on the far side, which reads like a contradiction and is
 					// the energy swirl over a charged creeper: Iris pins that row to ENTITIES_CUTOUT
 					// outright (pipeline/IrisPipelines.java:60) while the game blends it, so it is

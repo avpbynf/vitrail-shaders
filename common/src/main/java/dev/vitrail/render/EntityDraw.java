@@ -519,13 +519,24 @@ public final class EntityDraw extends FamilyDraw {
 		 * Asked of the blend, that piece was bound to the late side and {@link #inWindow} refused it in
 		 * the window it really arrives in, which put it on the game's target under the scene seed with
 		 * no depth of its own for the seed's cut to carry: the block broke with no crack on it.
+		 * <p>
+		 * <strong>And a blending row the game FORCES among the solid features is asked of the
+		 * game</strong>, {@link GamePipelines#solidPhase}: 26.3 files a banner's pattern layers in
+		 * the solid list whatever their blend, where 26.2 filed them with the translucents. Asked of
+		 * the blend alone, the pattern rows were bound to the late side, refused in the window they
+		 * arrive in, and the game drew every banner's colour under the pack's white cloth. The
+		 * program stays the translucent one, as Iris keys it.
 		 */
 		boolean afterStage() {
 			if (shadow()) {
 				return false;
 			}
 
-			return (hand() || glint() || crumbling()) ? this.afterDeferred : blended();
+			if (hand() || glint() || crumbling()) {
+				return this.afterDeferred;
+			}
+
+			return blended() && !GamePipelines.solidPhase(this.pipeline);
 		}
 
 		/**

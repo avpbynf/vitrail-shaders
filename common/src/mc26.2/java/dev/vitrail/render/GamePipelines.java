@@ -25,6 +25,14 @@ public final class GamePipelines {
 		return RenderPipelines.ARMOR_TRANSLUCENT;
 	}
 
+	/**
+	 * False for every pipeline: this game files a blending render type among the translucent
+	 * features, and forces none of them into the solid phase.
+	 */
+	public static boolean solidPhase(RenderPipeline pipeline) {
+		return false;
+	}
+
 	/** The box a text display draws behind its lines, depth tested. */
 	public static @Nullable RenderPipeline textBackground() {
 		return RenderPipelines.TEXT_BACKGROUND;
