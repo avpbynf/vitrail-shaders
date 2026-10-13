@@ -532,6 +532,17 @@ public final class DhLods {
 			// The ordinary case: DH is simply not installed.
 			cloudsHoldable = false;
 		} catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+			// The road is closed below and every later call returns at once, the hand-back at
+			// release among them, so a switch still held would stay held for the session with the
+			// player's own menu locked on it. It is handed back first, as mute hands its two back,
+			// and a second throw changes nothing.
+			try {
+				holdClouds(null);
+			} catch (ReflectiveOperationException | RuntimeException | LinkageError swallowed) {
+				e.addSuppressed(swallowed);
+			}
+
+			cloudsHeld = false;
 			cloudsHoldable = false;
 			Vitrail.logger().info("Distant Horizons keeps drawing its own clouds whatever the pack asks, "
 					+ "its cloud switch not being one this engine can reach: {}", e.toString());
