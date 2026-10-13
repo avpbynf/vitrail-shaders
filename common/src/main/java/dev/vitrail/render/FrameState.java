@@ -565,6 +565,22 @@ public final class FrameState implements WorldState {
 	}
 
 	/**
+	 * The world time that goes with the sun angle the dimension is actually drawn at.
+	 *
+	 * <p>{@code SUN_ANGLE} turns a full circle between one noon and the next and is 0 at noon, so
+	 * it lands on the clock as 0 degrees at 6000 (noon), 90 at 12000 (dusk), 180 at 18000
+	 * (midnight) and 270 at 0 (dawn). A fixed-time dimension has no clock to read, and the game
+	 * only asks {@code hasFixedTime} whether the world counts as bright, for mob behaviour, so
+	 * nothing else here would tell a pack the hour the dimension asked for. Pinning
+	 * {@code worldTime} to 0 instead leaves every pack drawing a permanent sunrise at an hour the
+	 * dimension never asked for, and hands the pack two uniforms that disagree about the time of
+	 * day, which is the one thing a pack reading both will not have been written to expect.
+	 */
+	private long worldTimeAtSunAngle() {
+		return Math.floorMod(6000L + Math.round(this.sunAngleDegrees / 360.0F * 24000.0F), 24000L);
+	}
+
+	/**
 	 * The sun is no longer a function of the world time on 26.2: it is an interpolated timeline a
 	 * data pack can redefine, read through the camera's attribute probe. Recomputing the angle
 	 * from {@code worldTime} would agree with vanilla and be wrong the moment anything touches the
@@ -592,7 +608,9 @@ public final class FrameState implements WorldState {
 		// an oversight of Iris's that packs now depend on: Complementary's ender beams stop moving
 		// without it.
 		boolean nowhere = this.dimensionOrdinal == -1 || this.dimensionOrdinal == 1;
-		this.worldTime = !nowhere && level.dimensionType().hasFixedTime() ? 0L : clock % 24000L;
+		this.worldTime = !nowhere && level.dimensionType().hasFixedTime()
+				? this.worldTimeAtSunAngle()
+				: clock % 24000L;
 
 		DimensionType dimension = level.dimensionType();
 		this.bedrockLevel = dimension.minY();

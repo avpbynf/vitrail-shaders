@@ -19,6 +19,12 @@ what the next one holds.
   off.** With that mod installed and its rendering off, loading the pack could log
   `'dhProjection' : undeclared identifier` for its two far terrain programs, which nothing
   draws in that state. Those programs are now left alone until Distant Horizons draws.
+- **A dimension that fixes its time of day draws the hour it asked for.** A dimension type that
+  sets `has_fixed_time` was handed a time of day of zero, which is sunrise, whatever hour its
+  `sun_angle` named, so under a pack the sky stood at sunrise with no direct sun over a dimension
+  that had asked for noon and told the pack so. The hour a pack is given is now read back out of
+  that sun angle, so the pack draws the hour the dimension asked for, moving `sun_angle` moves it,
+  and a dimension that does not fix its time is left as it was.
 
 ## 0.13.0-beta
 
