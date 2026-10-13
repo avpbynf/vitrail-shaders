@@ -202,7 +202,16 @@ final class DistantProgram extends FamilyProgram {
 		// Without DH standing, nothing ever draws these. And measured on a bench without that
 		// mod, the two dh programs also refused shaderc outright, so compiling ahead here bought
 		// nothing but refusal lines for programs no frame would ever ask for.
-		if (!DhLods.usable()) {
+		//
+		// The same holds with DH standing and its rendering switched off. The pack is then read
+		// without DISTANT_HORIZONS, and under Complementary the uniforms its dh programs read sit
+		// in the branch that symbol opens, so the compile was refused on 'dhProjection' for two
+		// programs nothing draws. What is asked is what the last read recorded, the answer
+		// PackDefines keeps for the reload a flip of that switch owes: stale for the length of a
+		// read at worst, which costs a skipped or a wasted warm-up and never an image. One state
+		// pays for it, DH's depth lost while its far terrain still draws: the pack is read
+		// without the symbol there too, and those programs then compile at their first draw.
+		if (!DhLods.usable() || !PackDefines.distantHorizons()) {
 			return false;
 		}
 

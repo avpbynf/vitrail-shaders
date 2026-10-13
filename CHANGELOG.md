@@ -11,6 +11,15 @@ publishing a jar named after one thing and built from another.
 Everything is a pre-release while the version stays under `1.0.0`. Nothing here is a promise about
 what the next one holds.
 
+## Unreleased
+
+### Fixed
+
+- **Complementary no longer logs two shader errors when Distant Horizons' rendering is switched
+  off.** With that mod installed and its rendering off, loading the pack could log
+  `'dhProjection' : undeclared identifier` for its two far terrain programs, which nothing
+  draws in that state. Those programs are now left alone until Distant Horizons draws.
+
 ## 0.13.0-beta
 
 ### Added

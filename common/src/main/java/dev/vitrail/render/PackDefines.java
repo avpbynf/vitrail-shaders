@@ -49,7 +49,11 @@ public final class PackDefines {
 	/** Which registry the last read was against, so that joining a world is noticed. */
 	private static volatile long installed;
 
-	/** And whether the far terrain was there, which the player can change without leaving. */
+	/**
+	 * And whether the far terrain was there, which the player can change without leaving. Read
+	 * off the render thread by {@code DistantProgram.warmAhead}, where a stale answer costs a
+	 * skipped or a wasted warm-up, never an image.
+	 */
 	private static volatile boolean distant;
 
 	/** And what the resource packs declared their material maps in, which a reload replaces. */
