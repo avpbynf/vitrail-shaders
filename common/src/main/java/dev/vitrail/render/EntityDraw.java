@@ -1211,7 +1211,7 @@ public final class EntityDraw extends FamilyDraw {
 		from.values().stream()
 				// No twin for the lines, on the crack's argument (CRUMBLING_EARLY carries it, and
 				// neither crack piece is in a table this files from): Iris keys two of the three to
-				// SHADOW_LINES (pipeline/IrisPipelines.java:116,118) and its shadow stage replays
+				// SHADOW_LINES (pipeline/IrisPipelines.java:115,117) and its shadow stage replays
 				// only what it submits itself, so the key sits unused there, and the light's walk
 				// here submits the same two families (ShadowGeometry.walk). A twin would be a
 				// compiled module nothing selects.
@@ -1321,7 +1321,7 @@ public final class EntityDraw extends FamilyDraw {
 	 * <p>
 	 * <strong>Here for the reason the eyes are in {@link #FIXED}, and out of that table for the
 	 * glint's.</strong> Iris keys the overlay on a constant, {@code p -> ShaderKey.CRUMBLING}
-	 * ({@code pipeline/IrisPipelines.java:79}), which consults neither the hand nor the block entity
+	 * ({@code pipeline/IrisPipelines.java:78}), which consults neither the hand nor the block entity
 	 * phase. That phase is the one a twin would really be reached in, a chest being as breakable as
 	 * the stone beside it, and the twin would ask for {@code gbuffers_block} inside a draw Iris keeps
 	 * on {@code gbuffers_damagedblock}. But a row of that table is one piece bound to one side of
@@ -1335,13 +1335,13 @@ public final class EntityDraw extends FamilyDraw {
 	 * {@code FeatureRenderDispatcher.PreparedFrame.executeTranslucent} runs between the translucent
 	 * blocks and the water mask, and the crack over every other block in the SOLID phase
 	 * ({@code SubmitNodeCollection.submitBreakingBlockModel} and {@code submitCrumblingOverlay}, each
-	 * choosing on the block's own translucency). So the common case is the early piece, drawn among
-	 * the opaque features onto the pack's own gbuffer exactly where Iris draws it, and the late one is
-	 * glass and ice. 26.2 filed every crack in the overlay phase, so there the late piece is the only
-	 * one ever reached.
+	 * choosing on whether the model's render type blends). So the common case is the early piece,
+	 * drawn among the opaque features onto the pack's own gbuffer exactly where Iris draws it, and
+	 * the late one is glass and ice. 26.2 filed every crack in the overlay phase, so there the late
+	 * piece is the only one ever reached.
 	 * <p>
 	 * The key is {@code ProgramId.DamagedBlock} at a tenth, drawn at full light with the fog off
-	 * ({@code pipeline/programs/ShaderKey.java:61}). The tenth is what {@link #CUTOUT} already is
+	 * ({@code pipeline/programs/ShaderKey.java:100}). The tenth is what {@link #CUTOUT} already is
 	 * here; the name falls back onto the terrain, which is Iris's tree as well. Under {@code NONE}
 	 * and not under {@code DESTROY}, which the stage enum carries and nobody poses: Iris declares that
 	 * phase too ({@code pipeline/WorldRenderingPhase.java:20}) and never sets it, so a pack reading
@@ -1372,11 +1372,12 @@ public final class EntityDraw extends FamilyDraw {
 	 * <strong>Neither piece has a shadow twin, and that is Iris's map rather than a
 	 * divergence.</strong> Iris holds a shadow key for this pipeline,
 	 * {@code assignToShadow(RenderPipelines.CRUMBLING, p -> ShaderKey.SHADOW_TEX)}
-	 * ({@code pipeline/IrisPipelines.java:95}), but its shadow stage replays only what it submits
-	 * itself, the entities and the block entities ({@code shadows/ShadowRenderer.java:572,580}), so
+	 * ({@code pipeline/IrisPipelines.java:94}), but its shadow stage replays only what it submits
+	 * itself, the entities and the block entities ({@code shadows/ShadowRenderer.java:581,589}), so
 	 * the overlay over a mined block never reaches its map and the key sits unused. Here the light's
-	 * walk replays the game's whole feature window, overlay included, so a filed twin fed the map a
-	 * draw the reference never makes. What that draw wrote there was the map's COLOUR half alone,
+	 * walk submits those two families as well ({@code ShadowGeometry.submit}), and a block entity
+	 * being mined brings its overlay with it, so a filed twin fed the map a draw the reference never
+	 * makes. What that draw wrote there was the map's COLOUR half alone,
 	 * the vanilla state keeping its depth write off ({@code RenderPipelines.CRUMBLING}, kept by
 	 * {@code EntityProgram.intoMap}); a pack reading {@code shadowcolor} then tints the sun with the
 	 * crack, and the face being mined wears a crack-shaped shadow. Neither piece is in a table
@@ -1531,8 +1532,8 @@ public final class EntityDraw extends FamilyDraw {
 	 * <p>
 	 * <strong>{@link #FIXED} is asked before all three, with the crack's two pieces right behind it,
 	 * and that is the same fidelity read from the other end.</strong> Those rows are constants in
-	 * Iris's own table rather than calls into the three functions that test anything ({@code pipeline/IrisPipelines.java:52,53}), so no mark of
-	 * ours may reach them either. What being asked LATER would cost is not the wrong program but no
+	 * Iris's own table rather than calls into the three functions that test anything
+	 * ({@code pipeline/IrisPipelines.java:52,53}), so no mark of ours may reach them either. What being asked LATER would cost is not the wrong program but no
 	 * program at all: the three tables the marks select are each derived from {@link #ELEMENTS} alone,
 	 * which has no eyes row, so an eye drawn while the arm was up or on a mob standing where a chest
 	 * had just been submitted would find nothing, go back to the game, and be painted flat through
