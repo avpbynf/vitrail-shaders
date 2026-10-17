@@ -713,7 +713,9 @@ final class GeometryProgram {
 				.toArray(Sampled[]::new);
 		this.readWhileWritten = readWhileWritten(targets);
 
-		String vertex = loaded.program().stages().get(ProgramStage.VERTEX).text();
+		ChunkFadeCompat.Patch chunkFade = ChunkFadeCompat.prepare(pass, loaded);
+		String originalVertex = loaded.program().stages().get(ProgramStage.VERTEX).text();
+		String vertex = chunkFade == null ? originalVertex : chunkFade.vertex(originalVertex);
 		// The pass is in the name and not only the path, because two passes are usually served by
 		// the same file and their text still differs: the cutout half carries a discard the solid
 		// half does not. The device caches a shader module under its identifier, so one name for two
@@ -733,6 +735,9 @@ final class GeometryProgram {
 			bindings.withUniform(pass.perDraw(), UniformType.UNIFORM_BUFFER);
 		}
 
+		if (chunkFade != null) {
+			GraphicsApi.withChunkFadeBindings(bindings, chunkFade.fade());
+		}
 		this.samplers.forEach(name -> GraphicsApi.withSampler(bindings, name));
 		this.storage.forEach(name -> bindings.withUniform(name, UniformType.UNIFORM_BUFFER));
 
@@ -825,7 +830,9 @@ final class GeometryProgram {
 		// ships a geometry stage the device cannot run and that cannot be folded away. The fragment
 		// stage is asked for here rather than read beside the vertex one because a fold rewrites it,
 		// which is also why the source is only built once the pipeline exists.
-		String fragment = GeometryStage.fragment(this.pipeline, this.path, loaded);
+		String originalFragment = GeometryStage.fragment(this.pipeline, this.path, loaded);
+		String fragment = chunkFade == null || originalFragment == null
+				? originalFragment : chunkFade.fragment(originalFragment);
 		if (fragment == null) {
 			this.broken = true;
 		}

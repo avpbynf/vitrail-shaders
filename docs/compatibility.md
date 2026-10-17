@@ -180,6 +180,20 @@ profiles draw with their colored lighting instead of switching it off behind the
 testing for a name still unserved keeps drawing its own overlay, and the paragraph above keeps
 being how to read it.
 
+## Chunks Fade In
+
+The experimental bridge on Minecraft 26.3 restores Chunks Fade In's terrain fade and
+motion with a shader pack enabled. The checked combination is CFI 3.0.29, Sodium
+0.9.2 and Complementary Unbound r5.9.3, with the mod's shader-patch options enabled.
+Fade alone, motion alone, both together, chunk streaming and pack reload were checked.
+
+After changing CFI's fade type, animation mode or shader-patch switches, press `R`
+to reload Vitrail's pack programs. This prototype does not yet follow CFI's own
+shader invalidation automatically. Other packs, packed colour outputs, CFI's pack
+API, geometry stages and world curvature have no compatibility claim from this
+check. The bridge is inactive on Minecraft 26.2. Its mechanism and boundaries are
+in [terrain](internals/terrain.md#experimental-chunks-fade-in-bridge).
+
 ## The effect never ran
 
 This is the most common false alarm, and it is worth checking before anything else.

@@ -13,6 +13,13 @@ what the next one holds.
 
 ## Unreleased
 
+### Added
+
+- **Experimental Chunks Fade In support on Minecraft 26.3.** Terrain can fade and
+  animate while shaders are enabled. Checked with CFI 3.0.29 and Complementary
+  Unbound r5.9.3. Press `R` after changing CFI's animation or shader-patch settings;
+  other packs and CFI's pack API are not covered by this first bridge.
+
 ### Fixed
 
 - **Complementary no longer logs two shader errors when Distant Horizons' rendering is switched

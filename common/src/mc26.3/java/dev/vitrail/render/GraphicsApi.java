@@ -548,4 +548,18 @@ public final class GraphicsApi {
 	public static void copyPushConstants(RenderPipeline.Builder builder, RenderPipeline from) {
 		builder.withPushConstantSize(from.pushConstantSize());
 	}
+	/** Whether this game has the CFI resource contract the bridge was written against. */
+	public static boolean supportsChunkFade() {
+		return true;
+	}
+
+	/** Adds the resources CFI's Sodium render hook already binds by these names. */
+	public static void withChunkFadeBindings(BindGroupLayout.Builder builder, boolean fade) {
+		builder.withUniform("cfi_u_FadeData", UniformType.TEXEL_BUFFER, GpuFormat.RGBA32_FLOAT);
+		if (fade) {
+			builder.withUniform("cfi_u_Globals", UniformType.UNIFORM_BUFFER);
+			builder.withUniform("cfi_sky", UniformType.COMBINED_IMAGE_SAMPLER);
+		}
+	}
+
 }

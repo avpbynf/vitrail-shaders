@@ -200,4 +200,14 @@ public final class GraphicsApi {
 	public static void copyPushConstants(RenderPipeline.Builder builder, RenderPipeline from) {
 		// Nothing: the rebuilt pipeline keeps the name that decides them.
 	}
+	/** Whether this game has the CFI resource contract the bridge was written against. */
+	public static boolean supportsChunkFade() {
+		return false;
+	}
+
+	/** Adds the resources CFI's Sodium render hook already binds by these names. */
+	public static void withChunkFadeBindings(BindGroupLayout.Builder builder, boolean fade) {
+		// The 26.2 bridge is deliberately unavailable.
+	}
+
 }
