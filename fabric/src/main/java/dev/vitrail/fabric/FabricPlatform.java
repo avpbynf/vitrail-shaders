@@ -16,17 +16,17 @@ final class FabricPlatform implements VitrailPlatform {
 
 	@Override
 	public String loaderVersion() {
-		return versionOf("fabricloader");
+		return modVersion("fabricloader");
 	}
 
 	@Override
 	public String modVersion() {
-		return versionOf(Vitrail.MOD_ID);
+		return modVersion(Vitrail.MOD_ID);
 	}
 
 	@Override
 	public String minecraftVersion() {
-		return versionOf("minecraft");
+		return modVersion("minecraft");
 	}
 
 	@Override
@@ -39,7 +39,8 @@ final class FabricPlatform implements VitrailPlatform {
 		return FabricLoader.getInstance().isModLoaded(modId);
 	}
 
-	private static String versionOf(String modId) {
+	@Override
+	public String modVersion(String modId) {
 		return FabricLoader.getInstance()
 				.getModContainer(modId)
 				.map(container -> container.getMetadata().getVersion().getFriendlyString())

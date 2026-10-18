@@ -15,6 +15,9 @@ public interface VitrailPlatform {
 
 	String modVersion();
 
+	/** Installed version of an optional integration, or "unknown" when absent. */
+	String modVersion(String modId);
+
 	String minecraftVersion();
 
 	/** Root of the game instance, where the user-editable shader sources live. */

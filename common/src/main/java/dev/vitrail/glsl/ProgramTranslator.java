@@ -326,8 +326,14 @@ public final class ProgramTranslator {
 		prepared.forEach((stage, prepare) -> {
 			Set<String> shadowed = new LinkedHashSet<>(elements);
 			shadowed.addAll(shadowedBy(prepare, block));
-			translated.put(stage, prepare.render(block, bound, varyings, shadowed,
-					memoryQualifiers, imageFormats));
+			TranslatedUnit rendered = prepare.render(block, bound, varyings, shadowed,
+					memoryQualifiers, imageFormats);
+			if (inputs == VertexInputs.TERRAIN || inputs == VertexInputs.TERRAIN_SEPARATE_AO) {
+				String marked = ChunkFadeShader.preserveMarkers(rendered.text(), units.get(stage).defines());
+				rendered = new TranslatedUnit(rendered.entry(), rendered.stage(), marked, rendered.notes(),
+						rendered.drawBuffers(), rendered.blockMembers(), rendered.samplers());
+			}
+			translated.put(stage, rendered);
 		});
 
 		return new TranslatedProgram(Map.copyOf(translated), block, bound, Set.copyOf(sampled),

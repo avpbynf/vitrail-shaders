@@ -436,3 +436,60 @@ One symptom class is worth naming because it does not look related. A screen-spa
 that reconstructs a world position from the depth buffer drifts relative to the image it is reading
 when the projection carries a term the reconstruction does not. The visible result is light bleeding
 through solid blocks: a lighting bug in appearance, a matrix bug in fact.
+
+## Experimental Chunks Fade In bridge
+
+On Minecraft 26.3, `ChunkFadeCompat` obtains code from the installed CFI
+`3.0.29-26.3` shader generator. Sodium `0.9.2+mc26.3` or
+`0.9.3-beta.1+mc26.3` is also checked before using its named resource contract.
+Other versions leave pack programs unchanged.
+The shared translator stays independent of Minecraft and the optional mod.
+
+`ChunkFadeShader` inserts the generated vertex initialisation after decoding the
+section-local position and before placing it in the region. The CFI texel index
+is `of_RegionId * 256 + a_LightAndData.w`. Movement is applied to camera and shadow
+terrain; colour fading is applied only to camera passes.
+
+Ordinary scalar/vector outputs are faded after the fragment entry point, including
+early returns. Discards retain their meaning. For supported built-in packing calls,
+a temporary copy of each colour vector is faded immediately before the assignment.
+Only its RGB channels change; alpha and the original variable remain available to
+the pack. Custom packing, indexed/compound writes and unbraced conditional packing
+are refused. The bridge prepares both stages before allocating a pipeline, so an
+unsupported transformation leaves the original pair and bindings unchanged.
+The ordinary floating-output fallback is refused when the fragment contains an
+integer-to-float bitcast without a recognized inline packing assignment. A local
+variable, helper return or macro can carry encoded bits to the output, so the
+presence of such a bitcast is enough: this bridge does not follow its data flow.
+The refusal is conservative, including when the bitcast serves another target.
+Generated declarations follow the hoisted extension directives.
+
+The translator retains live CFI opt-out defines as marker declarations. This
+metadata survives translation caching; comments and inactive defines cannot enable
+an opt-out. The bridge respects whole-program, movement and fragment-fade opt-outs.
+CFI's shader-pack API is not implemented, and no capability define advertises it.
+Geometry stages and curvature also remain outside this bridge.
+
+The pipeline declares `cfi_u_FadeData` as an RGBA32_FLOAT texel buffer and, where
+fading is active, `cfi_u_Globals` and `cfi_sky`. CFI's existing Sodium draw hook binds
+those names. CFI owns progress, timing, buffer uploads, resizing and disposal.
+The bridge stores no GPU resource and never calls the Iris OpenGL binding path.
+
+A cached VarHandle reads CFI's shader revision at the existing pack-staleness check.
+When CFI advances it, `PackChoice` uses its normal teardown/reload before the level
+is rendered and settles the revision with the new load. There is no file watcher
+or extra thread. The bridge is inactive on 26.2.
+
+The bridge has unit regressions and standalone compilation across CFI modes and
+all six Complementary terrain/shadow programs. Live checks on the committed build
+cover CFI's settings screen, disable/re-enable, pack reload, leaving/rejoining the
+world and changing render distance from 12 to 22. The automatic reload was observed
+without pressing Vitrail's reload key.
+
+The image checks use a stone platform with an oak trunk and a cutout canopy, the
+surrounding water and an underwater view. The settled image was compared with CFI
+enabled and disabled. Iris 1.11.7 was also checked on the same Sodium beta, CFI
+configuration, pack settings and camera positions. Both renderers show fade and
+movement, and their settled views look close; the samples do not align section
+ages, so they cannot establish pixel-exact transition parity. The checks cover
+Complementary Unbound r5.9.3, not a broader pack corpus, and establish no FPS gain.

@@ -17,17 +17,17 @@ final class NeoForgePlatform implements VitrailPlatform {
 
 	@Override
 	public String loaderVersion() {
-		return versionOf("neoforge");
+		return modVersion("neoforge");
 	}
 
 	@Override
 	public String modVersion() {
-		return versionOf(Vitrail.MOD_ID);
+		return modVersion(Vitrail.MOD_ID);
 	}
 
 	@Override
 	public String minecraftVersion() {
-		return versionOf("minecraft");
+		return modVersion("minecraft");
 	}
 
 	@Override
@@ -40,7 +40,8 @@ final class NeoForgePlatform implements VitrailPlatform {
 		return ModList.get().isLoaded(modId);
 	}
 
-	private static String versionOf(String modId) {
+	@Override
+	public String modVersion(String modId) {
 		return ModList.get()
 				.getModContainerById(modId)
 				.map(container -> container.getModInfo().getVersion().toString())

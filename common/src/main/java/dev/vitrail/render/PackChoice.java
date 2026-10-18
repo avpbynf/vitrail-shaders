@@ -1023,6 +1023,8 @@ public final class PackChoice {
 			Vitrail.logger().info("Distant Horizons is drawing a far terrain now, or has stopped, so "
 					+ "the pack is read again against DISTANT_HORIZONS: the symbol is what a pack "
 					+ "branches its distant land on, and it cannot be right for both");
+		} else if (ChunkFadeCompat.changed()) {
+			Vitrail.logger().info("Chunks Fade In settings changed, rebuilding the pack programs");
 		} else if (PackDefines.textureFormatMoved()) {
 			Vitrail.logger().info("The resource packs {}, so the pack is read again against "
 					+ "MC_TEXTURE_FORMAT_LAB_PBR and the revision beside it: those are what a "

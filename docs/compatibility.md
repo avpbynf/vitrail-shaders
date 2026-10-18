@@ -180,6 +180,42 @@ profiles draw with their colored lighting instead of switching it off behind the
 testing for a name still unserved keeps drawing its own overlay, and the paragraph above keeps
 being how to read it.
 
+## Chunks Fade In
+
+The experimental bridge on Minecraft 26.3 connects Chunks Fade In's terrain fade
+and movement to shader-pack terrain programs. It currently accepts CFI
+`3.0.29-26.3` with Sodium `0.9.2+mc26.3` or `0.9.3-beta.1+mc26.3`; other versions
+leave pack shaders unchanged and log a warning. The bridge is inactive on Minecraft 26.2.
+
+With Complementary Unbound r5.9.3 and Sodium 0.9.2, the live checks include fade
+and movement, streaming, pack reload, disable/re-enable, render-distance changes
+and leaving/rejoining the world. Changing CFI's settings rebuilds pack programs
+automatically; changing lined/linear fading to block/Oklab was checked through
+CFI's own settings screen.
+
+Separate checks on Sodium 0.9.3-beta.1 cover fade and movement, shadows, water,
+underwater rendering and toggling CFI. The committed build also renders and
+reloads with CFI absent on that beta.
+
+Settled shadows from opaque and cutout blocks, the water surface and underwater
+vegetation were checked with CFI enabled and disabled. Matched views with Iris
+1.11.7 on the same Sodium beta, CFI configuration and pack settings look close
+once settled, and both renderers show the fade and movement. The comparison does
+not establish pixel-exact transition parity: section ages were not synchronized.
+Other packs have no live compatibility claim from these checks.
+
+The first colour output is faded. Supported packed forms use GLSL's built-in
+Unorm/Snorm or half-float packing with a directly named colour vector. Temporary
+copies preserve its alpha and leave the pack's original variable untouched.
+Custom encoding, uncertain control flow and unsupported types leave that program
+unchanged with a warning rather than fading encoded material data. Integer-to-float
+bitcasts without a recognized inline packing assignment also skip the CFI patch.
+
+CFI's shader-pack API, geometry stages and world curvature remain unsupported.
+No CFI capability define is advertised to select a pack's API-specific branch.
+The mechanism and remaining checks are in
+[terrain](internals/terrain.md#experimental-chunks-fade-in-bridge).
+
 ## The effect never ran
 
 This is the most common false alarm, and it is worth checking before anything else.

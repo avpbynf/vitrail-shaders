@@ -39,10 +39,10 @@ import java.util.Objects;
  * at {@code :249}). At startup there are none, so the first read of a session still has to be
  * made again when a world arrives, and {@link #stale()}'s registry stamp is what notices that.
  * <p>
- * Two of these move without the world moving, so {@link #stale()} watches them beside the registry
+ * Three of these move without the world moving, so {@link #stale()} watches them beside the registry
  * rather than trusting what was true when the pack was read: Distant Horizons, which the player
  * switches from that mod's own screen, and the material convention a resource pack declares, which
- * a resource reload replaces.
+ * a resource reload replaces, and CFI shader settings, which change its revision.
  */
 public final class PackDefines {
 
@@ -84,6 +84,7 @@ public final class PackDefines {
 		installed = stamp();
 		distant = DhDepth.present();
 		format = PbrAtlases.format();
+		ChunkFadeCompat.settle();
 	}
 
 	/**
@@ -91,7 +92,8 @@ public final class PackDefines {
 	 * the one reload nobody can ask for.
 	 */
 	public static boolean stale() {
-		return stamp() != installed || distantHorizonsMoved() || textureFormatMoved();
+		return stamp() != installed || distantHorizonsMoved() || textureFormatMoved()
+				|| ChunkFadeCompat.changed();
 	}
 
 	/**
