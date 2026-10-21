@@ -15,6 +15,8 @@ what the next one holds.
 
 ### Fixed
 
+- Wakes Reforged can detect the active shader pack on Minecraft 26.3, and its wake trails render
+  after water instead of disappearing beneath the shader's final image.
 - **Complementary no longer logs two shader errors when Distant Horizons' rendering is switched
   off.** With that mod installed and its rendering off, loading the pack could log
   `'dhProjection' : undeclared identifier` for its two far terrain programs, which nothing

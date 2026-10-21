@@ -4,6 +4,7 @@ import dev.vitrail.pack.menu.MenuValues;
 import dev.vitrail.pack.menu.PackMenu;
 import dev.vitrail.pack.option.OptionIndex;
 import dev.vitrail.pack.option.OptionValue;
+import dev.vitrail.pack.option.PackOption;
 import dev.vitrail.pack.source.PackLang;
 import dev.vitrail.pack.source.ShaderPackSource;
 import dev.vitrail.pack.source.ShaderProperties;
@@ -15,6 +16,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -38,7 +40,7 @@ import java.util.Set;
  *                 says there why
  */
 public record PackSession(Path gameDirectory, Path packPath, String packFileName, PackMenu menu,
-		Set<String> declared, SettingsFile.Carried carried, SettingsFile.Stored saved,
+		Set<String> declared, OptionIndex options, SettingsFile.Carried carried, SettingsFile.Stored saved,
 		Map<String, OptionValue> forced) {
 
 	public PackSession {
@@ -51,11 +53,13 @@ public record PackSession(Path gameDirectory, Path packPath, String packFileName
 
 		PackMenu menu;
 		Set<String> declared;
+		OptionIndex options;
 		// One opening for both, the index being what the menu is built from anyway. Read here rather
 		// than left to the loader further down because the layers are resolved before a program is
 		// translated, and a value dropped has to be named at the moment it is dropped.
 		try (ShaderPackSource source = ShaderPackSource.open(packPath)) {
 			OptionIndex index = source.options();
+			options = index;
 			declared = index.names();
 			menu = PackMenu.build(source.packName(), index, ShaderProperties.parse(source),
 					PackLang.read(source, languageCode));
@@ -80,7 +84,7 @@ public record PackSession(Path gameDirectory, Path packPath, String packFileName
 			carried = new SettingsFile.Carried(SettingsFile.Carry.FAILED, "", SettingsFile.legacy(gameDirectory, packFileName));
 		}
 
-		return new PackSession(gameDirectory, packPath, packFileName, menu, declared, carried,
+		return new PackSession(gameDirectory, packPath, packFileName, menu, declared, options, carried,
 				SettingsFile.read(SettingsFile.of(gameDirectory, packFileName)),
 				SettingsLayers.forced(gameDirectory));
 	}
@@ -93,6 +97,24 @@ public record PackSession(Path gameDirectory, Path packPath, String packFileName
 	/** The pack's own file with {@code options.txt} over it, ready to build the pack with. */
 	public SettingsLayers.Resolved settings() {
 		return SettingsLayers.resolve(this.saved, this.forced);
+	}
+
+	/** The applied value, including defaults for declarations absent from every menu page. */
+	public Optional<String> appliedOption(String name) {
+		PackOption option = this.options.get(name).orElse(null);
+		if (option == null) {
+			return Optional.empty();
+		}
+		OptionValue chosen = settings().chosen().get(name);
+		if (chosen != null) {
+			return Optional.of(chosen.asText());
+		}
+		String profiled = this.menu.profile(settings().profile()).get(name);
+		if (profiled != null) {
+			return Optional.of(profiled);
+		}
+		return Optional.of(option.kind() == PackOption.Kind.TOGGLE
+				? Boolean.toString(!option.defaultOff()) : option.defaultText());
 	}
 
 	/**

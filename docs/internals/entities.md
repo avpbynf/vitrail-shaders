@@ -57,6 +57,12 @@ than reasoned about. Served all the time, every item in the inventory was drawn 
 `gbuffers_entities` under the world's camera matrix, so an inventory came out empty and the item in
 hand swayed with the walk.
 
+On 26.3 the translucent window also brackets `executeTranslucentAfterTerrain` and
+`executeSeeThrough`. The former carries custom geometry such as wake trails after water, and the
+latter carries names visible through walls. These are additional openings of the same late window,
+without clearing or composing the earlier feature layer. Served draws write the pack's targets;
+leaving them to the game's target would let the final shader image overwrite them.
+
 Inside the light's walk there is no such thing as handing a draw back. Everywhere else a refusal
 ends with the game drawing the thing itself, on the target its render type names; at the end of a
 frame that target is the finished picture, so a caster handed back would be painted across the image

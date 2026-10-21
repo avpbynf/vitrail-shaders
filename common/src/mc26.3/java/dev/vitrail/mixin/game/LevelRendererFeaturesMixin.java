@@ -35,6 +35,29 @@ import java.util.function.Supplier;
 @Mixin(LevelRenderer.class)
 public abstract class LevelRendererFeaturesMixin {
 
+	/**
+	 * The game's separate blending phase after water is outside the earlier feature window.
+	 * Its draws still belong in the pack's targets before the final image is composed.
+	 */
+	@WrapOperation(method = "executeClassicTransparency", require = 1,
+			at = @At(value = "INVOKE",
+					target = "Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame;"
+							+ "executeTranslucentAfterTerrain(Lcom/mojang/renderpearl/api/commands/RenderPass;)V"))
+	private void vitrail$afterTerrain(FeatureRenderDispatcher.PreparedFrame frame, RenderPass pass,
+			Operation<Void> original) {
+		if (!PackChain.drawingPack()) {
+			original.call(frame, pass);
+			return;
+		}
+
+		EntityDraw.translucentFeatures(true);
+		try {
+			original.call(frame, pass);
+		} finally {
+			EntityDraw.translucentFeatures(false);
+		}
+	}
+
 	@WrapOperation(method = "executeClassicTransparency", require = 1,
 			at = @At(value = "INVOKE",
 					target = "Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame;"

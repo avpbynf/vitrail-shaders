@@ -19,6 +19,7 @@
 		"RenderSystemMixin",
 		"SkyRendererMixin",
 		"SPIRVModuleMixin",
-		"VulkanRenderPipelineAccessor"
+		"VulkanRenderPipelineAccessor",
+		"WakesShaderHooksMixin"
 	]
 }
