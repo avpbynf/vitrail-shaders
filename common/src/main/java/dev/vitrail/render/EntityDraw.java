@@ -79,9 +79,10 @@ import java.util.stream.Stream;
  * the game itself splits them: a submitted model goes to the solid submits or to the translucent
  * ones on {@code RenderType.hasBlending} ({@code SubmitNodeCollection.java:173-179}), and the two
  * are executed on opposite sides of the event this engine runs its deferred stage at
- * ({@code feature/FeatureRenderDispatcher.java:198-217}). The table below is keyed by pipeline and
- * so carries the same split without a column for it, a pipeline either declaring a blend function
- * or not, and {@link #inWindow} is what refuses a row offered in the other half's window.
+ * ({@code feature/FeatureRenderDispatcher.java:198-217}). The pipeline gives ordinary rows that
+ * split. Custom renderers can emit blending geometry inside an opaque carrier; the early tables
+ * below prepare those draws for their actual window. {@code docs/internals/entities.md} carries
+ * the target and coverage contract.
  * <p>
  * <strong>That sort is not the whole of how geometry reaches the two windows, and two of the rows
  * below depend on the rest of it.</strong> The water mask is peeled off by identity BEFORE the blend
@@ -219,6 +220,11 @@ public final class EntityDraw extends FamilyDraw {
 	/** What the game binds its own entity image under, and what a pack reads as {@code gtexture}. */
 	private static final String TEXTURE = "Sampler0";
 
+	/** A program follows its pipeline's usual phase or is prepared for one explicit side. */
+	enum StageSide {
+		PIPELINE, BEFORE_DEFERRED, AFTER_DEFERRED
+	}
+
 	/**
 	 * One piece of the game's entity geometry: which pipeline it is drawn with, which program of the
 	 * pack answers for it, and what it discards at.
@@ -243,11 +249,9 @@ public final class EntityDraw extends FamilyDraw {
 	 *                      table branches on to reach {@code gbuffers_block}; and one of the two hand
 	 *                      phases for a hand piece, which Iris poses around each of its two passes
 	 *                      ({@code pathways/HandRenderer.java:106,143})
-	 * @param afterDeferred whether this piece's PASS is drawn after the deferred stage. True for
-	 *                      the hand's water rows and the late glint and crack pieces. A hand, glint
-	 *                      or crack row answers the side with this flag and never with
-	 *                      {@link #blended()}, its moment being its pass's or its carrier's; an
-	 *                      entity row answers with {@link #blended()}, and carries false here
+	 * @param side          the side of the deferred stage this piece is prepared for. Ordinary rows
+	 *                      follow the pipeline; a hand pass, a carried overlay or an early custom
+	 *                      entity draw names its side explicitly
 	 * @param fullbright    whether the game draws this piece at full light, so that the light map
 	 *                      names are answered with a constant and the sampler behind them with one
 	 *                      white texel. True for the eyes rows of {@link #FIXED} and the two crack
@@ -261,11 +265,11 @@ public final class EntityDraw extends FamilyDraw {
 	 *                      ({@code :38,40} for {@code gbuffers_entities} alone)
 	 */
 	record Element(RenderPipeline pipeline, String element, String program, AlphaTest alphaTest,
-			RenderStage stage, boolean afterDeferred, boolean fullbright) {
+			RenderStage stage, StageSide side, boolean fullbright) {
 
 		/** A piece of the mob half, which is every row of the table above. */
 		Element(RenderPipeline pipeline, String element, String program, AlphaTest alphaTest) {
-			this(pipeline, element, program, alphaTest, RenderStage.NONE, false, false);
+			this(pipeline, element, program, alphaTest, RenderStage.NONE, StageSide.PIPELINE, false);
 		}
 
 		/**
@@ -274,7 +278,8 @@ public final class EntityDraw extends FamilyDraw {
 		 */
 		Element(RenderPipeline pipeline, String element, String program, AlphaTest alphaTest,
 				RenderStage stage, boolean afterDeferred) {
-			this(pipeline, element, program, alphaTest, stage, afterDeferred, false);
+			this(pipeline, element, program, alphaTest, stage,
+					afterDeferred ? StageSide.AFTER_DEFERRED : StageSide.BEFORE_DEFERRED, false);
 		}
 
 		/**
@@ -487,11 +492,9 @@ public final class EntityDraw extends FamilyDraw {
 		 * Which side of the deferred stage this piece's PASS is drawn on, which is not always what
 		 * its own pipeline blends.
 		 * <p>
-		 * <strong>One question, three answers, and asked HERE and nowhere else, two copies of it
-		 * being two answers that drift apart.</strong> An entity row is asked of its pipeline, the
-		 * game sorting its own submissions that way. A hand row is asked of its row, a hand pass
-		 * being drawn wholly on one side whatever its rows blend, which is what {@link
-		 * #afterDeferred} carries and what the javadoc of that field says. A shadow row is neither:
+		 * An ordinary entity row follows its pipeline. A row with an explicit {@link #side} follows
+		 * its carrier instead, including a blending overlay drawn inside an opaque model. A shadow
+		 * row is neither:
 		 * the map is filled before the stage has run at all, so the whole of that table is on the
 		 * early side, and asking its pipeline would put its translucent rows on a side of the frame
 		 * the map never reaches.
@@ -532,11 +535,11 @@ public final class EntityDraw extends FamilyDraw {
 				return false;
 			}
 
-			if (hand() || glint() || crumbling()) {
-				return this.afterDeferred;
-			}
-
-			return blended() && !GamePipelines.solidPhase(this.pipeline);
+			return switch (this.side) {
+				case BEFORE_DEFERRED -> false;
+				case AFTER_DEFERRED -> true;
+				case PIPELINE -> blended() && !GamePipelines.solidPhase(this.pipeline);
+			};
 		}
 
 		/**
@@ -1082,12 +1085,34 @@ public final class EntityDraw extends FamilyDraw {
 	private static Element blockTwin(Element mob) {
 		if (PINNED.contains(mob.pipeline())) {
 			return new Element(mob.pipeline(), "block_" + mob.element(), mob.program(),
-					mob.alphaTest(), RenderStage.BLOCK_ENTITIES, false);
+					mob.alphaTest(), RenderStage.BLOCK_ENTITIES, StageSide.PIPELINE, false);
 		}
 
 		return new Element(mob.pipeline(), "block_" + mob.element(),
 				mob.blended() ? BLOCK_TRANSLUCENT : BLOCK, CUTOUT,
-				RenderStage.BLOCK_ENTITIES, false);
+				RenderStage.BLOCK_ENTITIES, StageSide.PIPELINE, false);
+	}
+
+	/**
+	 * ETF can emit a translucent overlay while its opaque model is being drawn. A late program is
+	 * not reusable there: its target side and coverage contract differ. The early variants have
+	 * their own module names; {@code docs/internals/entities.md} carries the binding contract.
+	 */
+	private static final Map<RenderPipeline, Element> EARLY_ELEMENTS = earlyTwins(ELEMENTS);
+
+	/** The same early rows under a block entity's program and stage. */
+	private static final Map<RenderPipeline, Element> EARLY_BLOCK_ELEMENTS = earlyTwins(BLOCK_ELEMENTS);
+
+	private static Map<RenderPipeline, Element> earlyTwins(Map<RenderPipeline, Element> from) {
+		Map<RenderPipeline, Element> early = new LinkedHashMap<>();
+		from.values().stream()
+				.filter(element -> element.afterStage() && !element.text())
+				.map(element -> new Element(element.pipeline(), "early_" + element.element(),
+						element.program(), element.alphaTest(), element.stage(),
+						StageSide.BEFORE_DEFERRED, element.fullbright()))
+				.forEach(element -> early.put(element.pipeline(), element));
+
+		return early;
 	}
 
 	/** What the hand asks for in its solid pass, and what its blending pass asks for instead. */
@@ -1401,7 +1426,8 @@ public final class EntityDraw extends FamilyDraw {
 	/** One of those two: the game's own overlay pipeline, on the side of the deferred stage given. */
 	private static Element crumbling(String element, boolean afterDeferred) {
 		return new Element(RenderPipelines.CRUMBLING, element, DAMAGED_BLOCK, CUTOUT,
-				RenderStage.NONE, afterDeferred, true);
+				RenderStage.NONE,
+				afterDeferred ? StageSide.AFTER_DEFERRED : StageSide.BEFORE_DEFERRED, true);
 	}
 
 	/**
@@ -1486,10 +1512,10 @@ public final class EntityDraw extends FamilyDraw {
 
 	static {
 		FIXED.put(RenderPipelines.EYES, new Element(RenderPipelines.EYES, "eyes", SPIDER_EYES,
-				AlphaTest.NON_ZERO, RenderStage.NONE, false, true));
+				AlphaTest.NON_ZERO, RenderStage.NONE, StageSide.PIPELINE, true));
 		FIXED.put(RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE,
 				new Element(RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE, "eyes_emissive", SPIDER_EYES,
-						CUTOUT, RenderStage.NONE, false, true));
+						CUTOUT, RenderStage.NONE, StageSide.PIPELINE, true));
 		// MovingBlockFeatureRenderer uses these three pipelines for falling blocks and blocks carried
 		// by pistons. Iris assigns them directly rather than consulting the entity, block-entity or
 		// hand phase (IrisPipelines.java:25-30), so they belong in this fixed table too.
@@ -1505,15 +1531,15 @@ public final class EntityDraw extends FamilyDraw {
 		// OUTLINE, which Iris poses on the block outline alone through the render type it wraps
 		// around that one draw (mixin/MixinLevelRenderer.java:270-274): here every lines draw of
 		// the window carries it, and the others riding these pipelines are the gizmos and the debug
-		// shapes, drawn by nobody playing. The side flag is an entity row's, so false and unread:
-		// the three pipelines blend, and blended() is what puts them after the deferred stage.
+		// shapes, drawn by nobody playing. Their side follows the pipeline: the three blend, so
+		// blended() puts them after the deferred stage.
 		FIXED.put(RenderPipelines.LINES, new Element(RenderPipelines.LINES, "lines", LINE,
-				AlphaTest.OFF, RenderStage.OUTLINE, false, false));
+				AlphaTest.OFF, RenderStage.OUTLINE, StageSide.PIPELINE, false));
 		FIXED.put(RenderPipelines.LINES_TRANSLUCENT, new Element(RenderPipelines.LINES_TRANSLUCENT,
-				"lines_translucent", LINE, AlphaTest.OFF, RenderStage.OUTLINE, false, false));
+				"lines_translucent", LINE, AlphaTest.OFF, RenderStage.OUTLINE, StageSide.PIPELINE, false));
 		FIXED.put(RenderPipelines.SECONDARY_BLOCK_OUTLINE,
 				new Element(RenderPipelines.SECONDARY_BLOCK_OUTLINE, "outline_secondary", LINE,
-						AlphaTest.OFF, RenderStage.OUTLINE, false, false));
+						AlphaTest.OFF, RenderStage.OUTLINE, StageSide.PIPELINE, false));
 	}
 
 	static {
@@ -1588,9 +1614,9 @@ public final class EntityDraw extends FamilyDraw {
 			return (HandDraw.drawingSolid() ? HAND_ELEMENTS : HAND_WATER_ELEMENTS).get(pipeline);
 		}
 
-		// The window decides which of the two picture pieces answers, and it is one of the two places
-		// in this class where a window is read to CHOOSE a row rather than to refuse one, the crack's
-		// above being the other. It has to be: the two differ in the side of the deferred stage they
+		// The window decides which of the two picture pieces answers, choosing a row rather than
+		// refusing one, as the crack's selector above does. It has to be: the two differ in the side
+		// of the deferred stage they
 		// are bound against, and nothing about a glint draw says which of the game's two halves it
 		// was submitted into.
 		if (pipeline == RenderPipelines.GLINT) {
@@ -1600,9 +1626,14 @@ public final class EntityDraw extends FamilyDraw {
 		// One table or the other and no falling between them: the block table is built from every row
 		// of the mob one, so a pipeline either has both halves or neither. The two hand tables are
 		// built the same way, from the same rows.
-		return BlockEntityGeometry.drawing()
-				? BLOCK_ELEMENTS.get(pipeline)
-				: ELEMENTS.get(pipeline);
+		boolean blockEntity = BlockEntityGeometry.drawing();
+		Element ordinary = (blockEntity ? BLOCK_ELEMENTS : ELEMENTS).get(pipeline);
+		if (opaqueFeatures && ordinary != null && ordinary.afterStage()) {
+			return (blockEntity ? EARLY_BLOCK_ELEMENTS : EARLY_ELEMENTS)
+					.getOrDefault(pipeline, ordinary);
+		}
+
+		return ordinary;
 	}
 
 	private final PackChain owner;
@@ -2401,6 +2432,9 @@ public final class EntityDraw extends FamilyDraw {
 					.toList();
 			groups.add(family.stream().filter(element -> !element.afterStage()).toList());
 			groups.add(family.stream().filter(Element::afterStage).toList());
+			// A refused early custom overlay must not take the ordinary model programs down.
+			groups.add(Stream.concat(twinsOf(served, EARLY_ELEMENTS).stream(),
+						twinsOf(served, EARLY_BLOCK_ELEMENTS).stream()).toList());
 
 			// A group of its own and not part of the blending half above, for the reason the
 			// particles are two groups: what stands or falls together is what shares a picture. The
@@ -2575,8 +2609,8 @@ public final class EntityDraw extends FamilyDraw {
 	 * with another would be a choice nothing forced.
 	 */
 	private void keep(List<Element> group, Map<String, PackProgram.Loaded> loaded) {
-		// The side is the pipeline's answer for the entity rows and the row's own flag for the
-		// hand's: a hand pass is drawn wholly on one side of the deferred stage whatever its rows'
+		// The side is the pipeline's answer for ordinary entity rows and explicit for a carrier's
+		// rows: a hand pass is drawn wholly on one side of the deferred stage whatever its rows'
 		// pipelines blend, the solid one before it and the water one after, so a hand row made from
 		// a blending mob pipeline still belongs to the side its PASS is drawn on.
 		Map<Half, List<ChainPlan.Attachment>> byFile = new LinkedHashMap<>();

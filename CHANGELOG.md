@@ -15,6 +15,8 @@ what the next one holds.
 
 ### Fixed
 
+- Custom emissive entity overlays keep their shader rendering when drawn with an opaque model,
+  preventing missing or flickering glowing textures with Entity Texture Features.
 - **Complementary no longer logs two shader errors when Distant Horizons' rendering is switched
   off.** With that mod installed and its rendering off, loading the pack could log
   `'dhProjection' : undeclared identifier` for its two far terrain programs, which nothing

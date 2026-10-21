@@ -268,9 +268,20 @@ held.
 
 The game itself splits this geometry. A submitted model goes to the solid submits or to the
 translucent ones on whether its render type blends, and the two are executed on opposite sides of the
-event the deferred stage runs at. So one table keyed by pipeline carries the split without a column
-for it, a pipeline either declaring a blend function or not, and a row offered in the other half's
-window is refused.
+event the deferred stage runs at. Ordinary rows follow that pipeline split; rows carried inside
+another pass name their side explicitly through `StageSide`.
+
+Custom model renderers can emit blending entity geometry while an opaque model is being drawn.
+Entity Texture Features' emissive overlay takes this route, bypassing the model-submission sort.
+The early entity and block-entity tables hold separate variants for these blending entity-mesh rows.
+Only a draw arriving in the opaque feature window selects an early variant; ordinary translucent
+models retain their late rows. The variant preserves the pipeline, program, origin, alpha test,
+blend, depth state and texture, but binds the early halves of the targets and writes the coverage
+mask. Reusing the late program there would read the wrong halves and let the scene seed paint over
+its colour. Each early variant has its own module name, and its preparation is a separate group:
+a refused custom overlay does not take the ordinary model programs down with it. The hand, fixed
+rows, text and shadow map keep their existing selection paths; no window is opened outside the
+level render.
 
 **What the two halves cost is not the same thing, and that is the whole of why they are two.** The
 opaque half is drawn before the deferred stage, so it takes its first draw buffer by writing the
