@@ -13,6 +13,11 @@ what the next one holds.
 
 ## Unreleased
 
+### Added
+
+- **Metal backend recognition**, allowing running the mod with a metal backend renderer without
+  it being marked as unsupported.
+
 ### Fixed
 
 - **Complementary no longer logs two shader errors when Distant Horizons' rendering is switched
