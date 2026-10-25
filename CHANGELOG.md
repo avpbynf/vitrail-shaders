@@ -15,6 +15,11 @@ what the next one holds.
 
 ### Fixed
 
+- **Photon loads without failing on `ofTexture`.** The pack aliases `texture` in
+  `#define BLOOM_UPSAMPLING_FILTER texture` and invokes it as a function. Vitrail previously
+  treated that identifier on the directive as a legacy sampler variable, renaming it to
+  `ofTexture` and failing shader compilation on composite passes. Macro identifiers aliasing
+  built-in functions are now preserved unless a variable or sampler of that name is declared.
 - **Complementary no longer logs two shader errors when Distant Horizons' rendering is switched
   off.** With that mod installed and its rendering off, loading the pack could log
   `'dhProjection' : undeclared identifier` for its two far terrain programs, which nothing

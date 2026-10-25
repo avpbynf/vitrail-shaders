@@ -453,6 +453,7 @@ public final class GlslTranslator {
 
 	/** Names the unit declares under a built-in type, which is how a declaration is told apart. */
 	private final Set<String> declaredNames = new HashSet<>();
+	private final Set<String> declaredOpaqueNames = new HashSet<>();
 
 	/** Built-ins added after GLSL 120 that this unit defines a function of its own for. */
 	private final Set<String> shadowedBuiltins = new HashSet<>();
@@ -1490,7 +1491,18 @@ public final class GlslTranslator {
 			}
 
 			int before = this.tokens.significantBefore(index);
-			if (before < 0 || !LegacyGlsl.TYPE_NAMES.contains(this.tokens.get(before).text())) {
+			if (before < 0) {
+				continue;
+			}
+
+			String type = this.tokens.get(before).text();
+			if (LegacyGlsl.isOpaqueType(type)) {
+				this.declaredOpaqueNames.add(token.text());
+				this.declaredOpaqueNames.addAll(continuationDeclarators(index));
+				continue;
+			}
+
+			if (!LegacyGlsl.TYPE_NAMES.contains(type)) {
 				continue;
 			}
 
@@ -2555,6 +2567,14 @@ public final class GlslTranslator {
 			if (named != null && "define".equals(directive)
 					&& !this.macroParameterTokens.contains(index)
 					&& this.tokens.callOpener(index) < 0) {
+				int macroNameIndex = macroNameOfDirective(index);
+				if (macroNameIndex >= 0) {
+					String macroName = this.tokens.get(macroNameIndex).text();
+					if (macroCalledAsFunction(macroName)
+							|| (aliasOf(macroNameIndex).filter(name::equals).isPresent() && !declaresOpaqueOrVariable(name))) {
+						continue;
+					}
+				}
 				this.tokens.replace(index, named);
 				continue;
 			}
@@ -2589,6 +2609,38 @@ public final class GlslTranslator {
 		// Token#macroName is. A position kept across here would be read against somebody else's
 		// token, and the reading pass has no way to notice.
 		this.tokens.insertClosings(closings);
+	}
+
+	private int macroNameOfDirective(int index) {
+		for (int scan = index - 1; scan >= 0; scan--) {
+			Token t = this.tokens.get(scan);
+			if (t.kind() == Kind.NEWLINE) {
+				break;
+			}
+
+			if (t.macroName()) {
+				return scan;
+			}
+		}
+
+		return -1;
+	}
+
+	private boolean macroCalledAsFunction(String macro) {
+		for (int at = 0; at < this.tokens.size(); at++) {
+			Token token = this.tokens.get(at);
+			if (token.kind() == Kind.IDENTIFIER && !token.macroName() && token.text().equals(macro)) {
+				if (this.tokens.callOpener(at) >= 0) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	private boolean declaresOpaqueOrVariable(String name) {
+		return this.declaredNames.contains(name) || this.declaredOpaqueNames.contains(name);
 	}
 
 	/**
