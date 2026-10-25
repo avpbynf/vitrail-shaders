@@ -48,6 +48,13 @@ public final class HostReport {
 	private static final String VULKAN = "Vulkan";
 
 	/**
+	 * The word {@code DeviceInfo.backendName()} holds on the backend this mod is written for, which
+	 * each backend passes in itself. Apple's Metal backend passes {@code Metal}, and is supported
+	 * alongside Vulkan rather than treated as an unsupported backend.
+	 */
+	private static final String METAL = "Metal";
+
+	/**
 	 * Answered where the device is not up yet, which at client setup cannot happen: the game builds
 	 * it in the {@code Minecraft} constructor and dispatches mod events long afterwards. It is here
 	 * so that a caller earlier than that gets a word rather than a crash, and it is a word the error
@@ -137,7 +144,7 @@ public final class HostReport {
 	public static boolean otherBackend() {
 		String backend = backend();
 
-		return !UNKNOWN.equals(backend) && !VULKAN.equals(backend);
+		return !UNKNOWN.equals(backend) && !VULKAN.equals(backend) && !METAL.equals(backend);
 	}
 
 	/**
