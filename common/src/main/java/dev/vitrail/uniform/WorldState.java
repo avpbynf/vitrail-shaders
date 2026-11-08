@@ -56,6 +56,17 @@ public interface WorldState extends ViewSource {
 
 	Vector3dc previousCameraPositionUnshifted();
 
+	/**
+	 * What Sodium 0.9.3-beta.2 and later leave out of a chunk pass's region offset: the camera's
+	 * position inside its own block, truncated toward nought on each axis rather than floored,
+	 * because that is the arithmetic its own {@code CameraTransform.fractional} does.
+	 * <p>
+	 * Nought on an older Sodium, where the fraction is still inside the offset. A chunk stage
+	 * subtracts it either way, so the answer to "old or new" belongs here and not in the shader:
+	 * {@link dev.vitrail.SodiumTerrainOffset} settles it once.
+	 */
+	Vector3fc sodiumCameraOffset();
+
 	// world
 
 	long worldTime();

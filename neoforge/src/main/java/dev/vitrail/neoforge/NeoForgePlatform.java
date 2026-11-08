@@ -26,6 +26,11 @@ final class NeoForgePlatform implements VitrailPlatform {
 	}
 
 	@Override
+	public String modVersion(String modId) {
+		return versionOf(modId);
+	}
+
+	@Override
 	public String minecraftVersion() {
 		return versionOf("minecraft");
 	}

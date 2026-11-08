@@ -374,6 +374,15 @@ public final class GlslTranslator {
 	/** How far into a sprite a chunk mesh's texture coordinate has to be pulled. */
 	private static final String TEX_SHRINK = "of_TexShrink";
 
+	/**
+	 * What the camera's whole block leaves out of a region offset, on a Sodium that puts it there.
+	 * <p>
+	 * Read by {@link SodiumVertex}'s prologue and by nothing else, and asked for only where a terrain
+	 * stage is wrapped: a member declared and never read still occupies its place in the block of
+	 * every program of the pack, and the block is the layout.
+	 */
+	private static final String CAMERA_OFFSET = "of_CameraOffset";
+
 	/** The colour a sky pass is modulated by, which the sky prologue folds into of_Color. */
 	private static final String PASS_COLOUR = "of_PassColour";
 
@@ -3779,6 +3788,21 @@ public final class GlslTranslator {
 	}
 
 	/**
+	 * The camera's fraction, which a chunk pass subtracts for itself before it becomes a world
+	 * position.
+	 * <p>
+	 * Asked for with {@link #takeTexShrink()} and for the same reason, from the one place that knows
+	 * a stage is a terrain one. The value is a block member and not a push constant because the
+	 * twenty bytes Sodium declares are Sodium's, and it is answered with a nought on a Sodium old
+	 * enough to still fold the fraction into the region offset: the head subtracts it either way, and
+	 * on that release the subtraction has to be of nothing.
+	 */
+	private void takeCameraOffset() {
+		record(this.blockMembers, CAMERA_OFFSET, "vec3 " + CAMERA_OFFSET);
+		this.injectedNames.add(CAMERA_OFFSET);
+	}
+
+	/**
 	 * The colour a sky pass is modulated by, asked for by the one prologue that folds a uniform into
 	 * {@code of_Color}.
 	 * <p>
@@ -4390,6 +4414,7 @@ public final class GlslTranslator {
 
 		if (terrain) {
 			takeTexShrink();
+			takeCameraOffset();
 		}
 
 		if (depth) {

@@ -15,6 +15,13 @@ what the next one holds.
 
 ### Fixed
 
+- **The world follows the camera again on Sodium 0.9.3-beta.2 and later.** Those releases stopped
+  putting the camera's position within its own block into a chunk pass's region offset, and subtract
+  it in their own chunk shader instead, which a pack's terrain program never runs. Without it every
+  section landed on a whole block: the world trailed the camera by up to a block and jumped back a
+  whole one at every boundary crossed, so it moved in steps rather than with the player. The terrain
+  head subtracts it too, and on a Sodium old enough to still fold it into the offset the same line
+  subtracts nothing, so both are drawn as before.
 - **Complementary no longer logs two shader errors when Distant Horizons' rendering is switched
   off.** With that mod installed and its rendering off, loading the pack could log
   `'dhProjection' : undeclared identifier` for its two far terrain programs, which nothing

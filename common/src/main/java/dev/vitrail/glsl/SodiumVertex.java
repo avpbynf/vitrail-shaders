@@ -46,6 +46,16 @@ import java.util.Set;
  * only to a pipeline whose location has a namespace <em>containing</em> {@code sodium}. A pipeline
  * named otherwise is pushed twenty bytes into a layout that has no room for them, the offset never
  * arrives, and every region draws itself on top of the one before at the camera.
+ * <p>
+ * <strong>The camera's fraction arrives through the block instead, and not beside the offset.</strong>
+ * The twenty bytes above are Sodium's, and a fourth member would move a range this mod does not
+ * declare. {@code of_CameraOffset} is an ordinary member of the block every program of this engine
+ * already binds, answered from {@link dev.vitrail.uniform.WorldState#sodiumCameraOffset()}, and it is
+ * worth whatever the version of Sodium in front makes it worth: since 0.9.3-beta.2 the region offset
+ * stops at the camera's whole block and the fraction rides beside it, and before that release the
+ * fraction was already inside the offset and the member is nought.
+ * {@link dev.vitrail.SodiumTerrainOffset} decides which of the two, once, so that one head serves
+ * both.
  */
 public final class SodiumVertex {
 
@@ -252,6 +262,11 @@ public final class SodiumVertex {
 	/**
 	 * The head of a terrain vertex stage: the elements the mesh carries, the region push constants,
 	 * the names the mesh answers out of them, and whatever the pack reads that no element carries.
+	 * <p>
+	 * It reads one name of the block and no push constant beyond the three Sodium pushes:
+	 * {@code of_CameraOffset}, which is what the region offset no longer carries. Nothing in this
+	 * head writes it, and a pack that never draws a chunk pass never sees it, since
+	 * {@link GlslTranslator} asks for the member only for a terrain stage.
 	 *
 	 * @param carried     the elements the mesh really carries, in the format's own order. Exactly
 	 *                    these are declared and no others, which is why it is the union of
@@ -324,7 +339,14 @@ public final class SodiumVertex {
 
 		lines.add("void " + PROLOGUE + "() {");
 		lines.add("\tvec3 ofLocal = vec3(ofAxis(0u), ofAxis(10u), ofAxis(20u));");
-		lines.add("\tof_Vertex = vec4(ofLocal + of_RegionOffset"
+		// Minus the camera's own fraction, and this is the whole of what Sodium 0.9.3-beta.2 moved.
+		// Its region offset used to be measured from the camera's exact position; from that release
+		// it is measured from the camera's whole block and the fraction rides beside it in
+		// u_CameraOffset, which block_layer_opaque.vsh subtracts itself. A stage that is not
+		// Sodium's own never sees that line, so without the member below every section lands on a
+		// whole block: the world trails the camera by up to one block and jumps back one at every
+		// boundary crossed, which is a jitter in the world rather than in the frame rate.
+		lines.add("\tof_Vertex = vec4(ofLocal + of_RegionOffset - of_CameraOffset"
 				+ " + ofSectionOrigin(a_LightAndData.w), 1.0);");
 		// Sodium's own word holds the tint with the occlusion multiplied into it; ours holds the two
 		// apart, and separateAo is the pack saying it means to see them apart. Both are on every
