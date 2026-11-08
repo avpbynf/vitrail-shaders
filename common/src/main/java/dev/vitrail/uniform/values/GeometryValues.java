@@ -144,6 +144,13 @@ public final class GeometryValues {
 		builder.add("of_TexShrink", UniformShape.VEC2, (world, out) ->
 				out.set(shrink(world.atlasWidth()), shrink(world.atlasHeight())));
 
+		// The camera's fraction, which a chunk pass subtracts because Sodium stopped putting it in
+		// the region offset. Held by the world state rather than worked out here: what it is worth
+		// depends on which Sodium is in front, and that is settled once for the whole session rather
+		// than once per value.
+		builder.add("of_CameraOffset", UniformShape.VEC3,
+				(world, out) -> out.set(world.sodiumCameraOffset()));
+
 		// A nought, and it is the value rather than a stand-in for one. Iris makes the smoothed
 		// centre depth available to the full screen stages alone, its CompositeDepthTransformer
 		// running under Patch.COMPOSITE, so the uniform a gbuffers program declares is one nothing
