@@ -1,5 +1,6 @@
 package dev.vitrail.render;
 
+import dev.vitrail.mixin.access.GameRendererHudTargetAccessor;
 import dev.vitrail.mixin.access.LevelRendererOutlineAccessor;
 import dev.vitrail.mixin.access.RenderTargetAccessor;
 import dev.vitrail.settings.PackFile;
@@ -443,6 +444,15 @@ public final class RenderScale {
 	 */
 	private static final TemporalAccumulation TEMPORAL = new TemporalAccumulation();
 
+	/**
+	 * Whether the hand's own depth target has been moved to the scaled size and owes a move back.
+	 * <p>
+	 * Its own latch rather than the outline's: the two are resized on the same frames today, but one
+	 * of them can be left moved while the other is not, and each move is worth its cost only where
+	 * the size really has to change.
+	 */
+	private static boolean hudDepthScaled;
+
 	/** Whether the entity outline target is at the scaled size and owes the window its own back. */
 	private static boolean outlineScaled;
 
@@ -542,6 +552,7 @@ public final class RenderScale {
 		}
 
 		resizeOutline(width, height, true);
+		resizeHudDepth(width, height, true);
 
 		RenderTargetAccessor accessor = (RenderTargetAccessor) main;
 		fullColor = accessor.vitrail$colorTexture();
@@ -651,6 +662,10 @@ public final class RenderScale {
 	private static void standDown(RenderTarget main) {
 		if (outlineScaled) {
 			resizeOutline(main.width, main.height, false);
+		}
+
+		if (hudDepthScaled) {
+			resizeHudDepth(main.width, main.height, false);
 		}
 
 		release();
@@ -763,6 +778,38 @@ public final class RenderScale {
 		}
 
 		outlineScaled = scaledNow;
+	}
+
+	/**
+	 * Brings the hand's own depth target to the given size, for the same reason and by the same road
+	 * as {@link #resizeOutline}.
+	 * <p>
+	 * <strong>The game chooses between two depths for the hand, and this is the one that does not
+	 * follow the swap.</strong> {@code GameRenderer.render3dHud} reads this target's when
+	 * {@code consistentDepthRequired} is set, which is {@code !appliedPostEffects.isEmpty()}: a post
+	 * effect wants the hand's depth to line up with the world's, so the game draws the hand against
+	 * an image of its own and folds the two together afterwards. The colour attachment of that pass
+	 * still comes from the main target, which the swap has already shrunk, so a target left at the
+	 * window's size makes the pair disagree and the device refuses the pass by size rather than
+	 * drawing something wrong. One post effect is enough to reach this, and the report on issue 453
+	 * is the crash this method is named after.
+	 * <p>
+	 * Moved on every scaled frame rather than only on the frames a post effect runs, so that a post
+	 * effect turning on does not need a resize at the moment its first pass is built.
+	 */
+	private static void resizeHudDepth(int width, int height, boolean scaledNow) {
+		Minecraft minecraft = Minecraft.getInstance();
+		if (minecraft == null || minecraft.gameRenderer == null) {
+			return;
+		}
+
+		RenderTarget hud = ((GameRendererHudTargetAccessor) minecraft.gameRenderer)
+				.vitrail$hud3DTarget();
+		if (hud != null && (hud.width != width || hud.height != height)) {
+			hud.resize(width, height);
+		}
+
+		hudDepthScaled = scaledNow;
 	}
 
 	/**
