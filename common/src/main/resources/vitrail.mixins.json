@@ -45,6 +45,7 @@
 		"LevelExtractorMixin",
 		"LevelRendererFrameMixin",
 		"LevelRendererMixin",
+		"access.GameRendererHudTargetAccessor",
 		"access.LevelRendererOutlineAccessor",
 		"LevelRendererSkyMixin",
 		"ModelFeatureRendererMixin",
