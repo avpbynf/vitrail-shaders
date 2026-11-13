@@ -5,6 +5,7 @@ import dev.vitrail.pack.target.ChainPlan;
 import dev.vitrail.pack.target.TargetPlan;
 import dev.vitrail.Vitrail;
 
+import com.mojang.blaze3d.pipeline.DepthStencilState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.textures.GpuSampler;
@@ -113,7 +114,11 @@ final class ParticleProgram extends FamilyProgram {
 				// nothing, so no sibling has to mark these pixels for it either.
 				!element.afterDeferred(), false, element.afterDeferred(),
 				game.getPrimitiveTopology(), game.isCull(),
-				game.getDepthStencilState(), element.stage(),
+				(element.afterDeferred() && game.getDepthStencilState() != null
+						? new DepthStencilState(game.getDepthStencilState().depthTest(), false,
+								game.getDepthStencilState().depthBiasScaleFactor(),
+								game.getDepthStencilState().depthBiasConstant())
+						: game.getDepthStencilState()), element.stage(),
 				// Nothing of the game's bound beside the mesh, unlike the clouds: a particle carries
 				// its whole geometry in the vertex buffer the renderer fills.
 				null,

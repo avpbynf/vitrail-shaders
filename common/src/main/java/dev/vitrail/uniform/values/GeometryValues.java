@@ -144,6 +144,13 @@ public final class GeometryValues {
 		builder.add("of_TexShrink", UniformShape.VEC2, (world, out) ->
 				out.set(shrink(world.atlasWidth()), shrink(world.atlasHeight())));
 
+		builder.add("of_CameraOffset", UniformShape.VEC3, (world, out) -> {
+			var cam = world.cameraPositionUnshifted();
+			out.set((float) (cam.x() - (int) cam.x()),
+					(float) (cam.y() - (int) cam.y()),
+					(float) (cam.z() - (int) cam.z()));
+		});
+
 		// A nought, and it is the value rather than a stand-in for one. Iris makes the smoothed
 		// centre depth available to the full screen stages alone, its CompositeDepthTransformer
 		// running under Patch.COMPOSITE, so the uniform a gbuffers program declares is one nothing

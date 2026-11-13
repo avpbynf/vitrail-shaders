@@ -14,6 +14,12 @@ what the next one holds.
 ## Unreleased
 
 ### Fixed
+- **Sodium `0.9.3-beta.2+` camera transform:** Subtracted the sub-block camera offset (`of_CameraOffset`, using toward-zero truncation) from `of_RegionOffset` in the Sodium terrain vertex prologue to prevent terrain drifting and block-boundary snapping.
+- **Sodium `0.9.3-beta.5` compatibility:** Updated `MixinShaderChunkRenderer` and `MixinDefaultChunkRenderer` to capture `TerrainDraw.sampler` inside `DefaultChunkRenderer#render` and match the new `ShaderCompilationParameters` argument on `ShaderChunkRenderer#compileProgram` while keeping backward compatibility with `0.9.3-beta.2`-`beta.4`.
+- **Translucent particle depth writes:** Disabled `depthWrite` on the post-deferred `particles_translucent` pass in `ParticleProgram` so large semi-transparent particle quads (e.g. ambient fog/mist) no longer overwrite `depthtex0`.
+
+
+### Fixed
 
 - **Complementary no longer logs two shader errors when Distant Horizons' rendering is switched
   off.** With that mod installed and its rendering off, loading the pack could log

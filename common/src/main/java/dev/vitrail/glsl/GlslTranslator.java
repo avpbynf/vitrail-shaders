@@ -373,6 +373,7 @@ public final class GlslTranslator {
 
 	/** How far into a sprite a chunk mesh's texture coordinate has to be pulled. */
 	private static final String TEX_SHRINK = "of_TexShrink";
+	private static final String CAMERA_OFFSET = "of_CameraOffset";
 
 	/** The colour a sky pass is modulated by, which the sky prologue folds into of_Color. */
 	private static final String PASS_COLOUR = "of_PassColour";
@@ -3776,6 +3777,8 @@ public final class GlslTranslator {
 	private void takeTexShrink() {
 		record(this.blockMembers, TEX_SHRINK, "vec2 " + TEX_SHRINK);
 		this.injectedNames.add(TEX_SHRINK);
+		record(this.blockMembers, CAMERA_OFFSET, "vec3 " + CAMERA_OFFSET);
+		this.injectedNames.add(CAMERA_OFFSET);
 	}
 
 	/**
