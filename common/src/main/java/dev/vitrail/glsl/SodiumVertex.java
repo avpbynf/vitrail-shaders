@@ -324,7 +324,7 @@ public final class SodiumVertex {
 
 		lines.add("void " + PROLOGUE + "() {");
 		lines.add("\tvec3 ofLocal = vec3(ofAxis(0u), ofAxis(10u), ofAxis(20u));");
-		lines.add("\tof_Vertex = vec4(ofLocal + of_RegionOffset"
+		lines.add("\tof_Vertex = vec4(ofLocal + of_RegionOffset - of_CameraOffset"
 				+ " + ofSectionOrigin(a_LightAndData.w), 1.0);");
 		// Sodium's own word holds the tint with the occlusion multiplied into it; ours holds the two
 		// apart, and separateAo is the pack saying it means to see them apart. Both are on every

@@ -16,6 +16,7 @@
 		"BufferBuilderMixin",
 		"access.ByteBufferBuilderAccessor",
 		"CardinalLightingMixin",
+		"CameraMixin",
 		"sodium.ChunkMeshFormatsMixin",
 		"sodium.ChunkVertexMixin",
 		"ClientLevelMixin",
