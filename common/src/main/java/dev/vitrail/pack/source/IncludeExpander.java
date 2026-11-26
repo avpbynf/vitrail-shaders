@@ -56,7 +56,7 @@ import java.util.regex.Pattern;
  * The other lines that do not survive as written are the conditionals a pack wrote loosely, which
  * the compiler would refuse where the reference never shows it a conditional at all. They are
  * rewritten into a directive GLSL will take, or commented out where there is nothing for them to
- * close: see {@link #defined} and {@link #unopened}.
+ * close: see {@link #defined}, {@link #rewritten} and {@link #unopened}.
  * <p>
  * A pack's {@code #error} becomes a comment too, in a branch taken or not. jcpp hands it to the
  * reference's listener, which logs it and lets the program build ({@code GlslCollectingListener}
@@ -614,7 +614,7 @@ public final class IncludeExpander {
 	}
 
 	/**
-	 * The verdict written out as the condition itself, on the one kind of condition the compiler
+	 * The verdict written out as the condition itself, on the kinds of condition the compiler
 	 * will not read, or null on every other, which keeps its own text.
 	 * <p>
 	 * The preprocessor of the language works in whole numbers and refuses a line carrying anything
@@ -630,12 +630,28 @@ public final class IncludeExpander {
 	 * it read Clarity's motion blur as switched off: the picture would have lost the effect with
 	 * nothing said. The two halves only work together.
 	 * <p>
-	 * An expression neither this nor a driver can settle is written as taken, which is what
-	 * {@link #decide} answers everywhere else and for the reason given there.
+	 * An expression this reader cannot answer at all is written as a plain taken condition for the
+	 * same reason {@link #decide} takes it: including code that is not wanted costs a compiler
+	 * error that names the line, while dropping code that is wanted removes a declaration and the
+	 * error points somewhere else. Writing the answer rather than the pack's text also matters.
+	 * <p>
+	 * A call to a name no define supplies is answered false instead, as the reference's
+	 * preprocessor answers it, and written out as {@code #if 0}. Pastel writes
+	 * {@code #if (in(biome, BIOME_SOUL_SAND_VALLEY)} in the fog include shared by six of its units;
+	 * a compiler's preprocessor has no {@code in} and refused the whole pack. Taking that group
+	 * was worse: it put a second {@code fogColor} beside the overworld one and the compiler
+	 * refused {@code world0/deferred1} for redefinition. The branch the reference takes is the one
+	 * written out in both cases, only the directive the compiler sees changes.
 	 */
 	private String rewritten(String expression, State state) {
 		PreprocessorExpression.Verdict verdict =
 				PreprocessorExpression.decide(expression, state.defines);
+		if (verdict.unreadable()) {
+			return "0";
+		}
+		if (verdict.taken().isEmpty()) {
+			return "1";
+		}
 		if (!verdict.fractional()) {
 			return null;
 		}

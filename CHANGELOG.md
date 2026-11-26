@@ -11,6 +11,27 @@ publishing a jar named after one thing and built from another.
 Everything is a pre-release while the version stays under `1.0.0`. Nothing here is a promise about
 what the next one holds.
 
+## Unreleased
+
+### Fixed
+
+- **Pastel's ambient colour keeps its value.** Its `profile.YLOW` names `AMBIENT_DR` bare, but that
+  setting is a number, not a switch. Iris drops such a word; Vitrail was applying it as ON, which
+  left the pack's `#define AMBIENT_DR 140` with no value. Bare names are now constraints only when
+  the pack declares them as booleans, in both the load and the menu paths, and the menu no longer
+  warns about a setting the pack really has.
+- **Pastel Shaders draws again.** Its shared fog include carries a malformed condition,
+  `#if (in(biome, BIOME_SOUL_SAND_VALLEY)`, which was handed to the compiler as written. The
+  compiler's preprocessor has no `in` and refused `world0/deferred1`, so nothing of the pack was
+  drawn. Writing the condition as taken instead got past that only to define `fogColor` twice,
+  which the compiler refused for redefinition. A call to a name the pack never defines in a
+  condition is now answered false, as the reference's preprocessor answers it, and written out
+  as `#if 0`; other conditions Vitrail cannot answer keep the taken branch they already chose.
+- **Complementary no longer logs two shader errors when Distant Horizons' rendering is switched
+  off.** With that mod installed and its rendering off, loading the pack could log
+  `'dhProjection' : undeclared identifier` for its two far terrain programs, which nothing
+  draws in that state. Those programs are now left alone until Distant Horizons draws.
+
 ## 0.13.0-beta
 
 ### Added

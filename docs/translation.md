@@ -394,9 +394,13 @@ that shadows a builtin name is refused rather than resolved by precedence.
 
 Not every remaining failure is a translation gap, and the distinction is worth making.
 
-**Closed by the game's own rendering API, for a pack that goes through the facade.** Compute shaders,
-shader storage buffers, storage images, and one- and three-dimensional samplers. Same conclusion
-for that path, three different mechanisms, and it is worth knowing which:
+**Closed by the game's own Java rendering facade, not by the Vulkan backend underneath it.**
+Compute shaders, shader storage buffers and storage images cannot go through that facade; one- and
+three-dimensional samplers are closed there too. Same conclusion for that path, three different
+mechanisms, and it is worth knowing which. The engine widens around the facade rather than giving
+up: `VulkanBindGroupLayoutMixin` and `VulkanConstMixin` open the descriptor and usage bits, and
+`PackCompute`, `StorageImages` and `StorageBuffers` do the work outside it
+([the game's graphics API](internals/game-graphics-api.md)):
 
 - **Samplers are refused by name.** The compiler takes one as two-dimensional or as a cube, or as a
   texel buffer where the pipeline declared that name as a uniform rather than as a sampler, and

@@ -37,7 +37,7 @@
 </p>
 </details>
 
-Minecraft 26.2 ships a native Vulkan renderer alongside the OpenGL one. Every
+Minecraft now ships a native Vulkan renderer alongside the OpenGL one. Every
 shader pack that exists was written for OpenGL, and none of them run on it.
 
 **Vitrail runs them anyway, unmodified.** It reads an OptiFine-format pack out
@@ -45,13 +45,15 @@ of `shaderpacks/`, translates its GLSL once when the pack loads, and hands it to
 the compiler the game already embeds. Nothing translates while a frame is drawn.
 
 It started as a question, whether packs written for OpenGL over more than a
-decade could run untouched on the renderer that now ships with the game. It is
-one person's side project, worked on every day since July, and an early one:
-the backend it runs on is marked experimental by the game itself.
+decade could run untouched on the renderer that now ships with the game, and
+as one person's side project, worked on every day since July. Contributors
+have joined along the way, and it is still an early one: the backend it runs
+on is marked experimental by the game itself.
 
-It is built the way a lot of software gets built now: AI tools do a real share
-of the typing and the debugging, and a human decides, tests against real packs
-and against Iris, reviews every line and carries the blame for every bug. What
+It is built the way a lot of software gets built now, and it would not exist
+otherwise: AI tools do most of the typing and the debugging, and a human
+decides what gets built, tests it against real packs and against Iris, and
+carries the blame for every bug. What
 was taken from Iris and from Kroppeb's stareval is credited file by file in
 [NOTICE](NOTICE), under the same licence. If any of that matters to you, now you
 know. If the mod is useful, there is a coffee link below, and the issues here

@@ -189,9 +189,11 @@ A profile that names a word its own pack declares nowhere is dropped in silence,
 is nearly as quiet. Four of the forms its parser takes name a setting, and it looks only one of them
 up before using it, the bare positive one, which is where it warns. The `!NAME`, `NAME=value` and
 `NAME:value` forms go through unchecked, and over the eight test packs those three are 423 tokens of
-the 440 the four carry. Here nothing is looked up on any form. What the difference costs is a pack
-author's own typo staying invisible in one form of four; it costs the picture nothing, since neither
-engine applies the word anywhere.
+the 440 the four carry. Here the bare form is looked up in the boolean half of the index:
+`OptionIndex.booleanOption` is what both the applying path and the menu use, so a declared value
+written bare is dropped with its default intact rather than turned into ON and left valueless.
+What the difference costs is a pack author's own typo staying invisible in one form of four; it
+costs the picture nothing, since neither engine applies the word anywhere.
 
 Under both sits the engine's own table, and three readers have to be handed the same one: the
 preprocessor deciding which branch is live, the translator writing those symbols back out, and the

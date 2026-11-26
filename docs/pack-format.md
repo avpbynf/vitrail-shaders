@@ -349,6 +349,13 @@ false, a name with a value, and a bare name meaning true. They are applied in re
 one winning, and each profile is an independent variant: there is no running "current profile"
 accumulating across them.
 
+The bare shape is a constraint only when the name is declared as a boolean, which is the
+reference's own sieve (`ProfileSet.parse` calling `OptionSet.isBooleanOption`). A bare numeric
+setting is dropped and its default left alone: Pastel writes `AMBIENT_DR` bare in `profile.YLOW`,
+and forcing it on used to rewrite the pack's `#define AMBIENT_DR 140` into one with no value at all.
+Applying and menu paths use the same answer, so a profile neither changes such a setting nor warns
+about it.
+
 The profile shown to the user is **deduced, not stored**: it is the first profile, from most
 constrained to least, whose values all match the ones in force, and Custom otherwise. No profile is
 synthesised from the pack's own defaults, here or in the reference, so a reset lands on a named
@@ -412,9 +419,20 @@ Two shapes the compiler takes are still missed: a directive written after the `*
 comment on the same line, and the `#endif` added at the end of a file for a rewritten group when
 that file ends inside a comment it never closed, which lands inside the comment.
 
-**A non-evaluable condition is taken as true**, and counted. The asymmetry is deliberate: including
-too much is recoverable, while a skipped include produces an avalanche of undeclared identifiers
-with no visible relation to its cause.
+**A non-evaluable condition is taken as true and written out as `#if 1`.** The asymmetry is
+deliberate: including too much is recoverable, while a skipped include produces an avalanche of
+undeclared identifiers with no visible relation to its cause. Writing the answer instead of the
+pack's text matters too, because a condition naming something the compiler has no notion of, such
+as Pastel's `#if (in(biome, BIOME_SOUL_SAND_VALLEY)`, is refused by the compiler outright. These
+conditions are answered here rather than handed to the compiler, so they are not counted among the
+undecidable ones.
+
+**One shape is answered false instead: a call to a name no define supplies.** The reference's
+preprocessor reads an undefined function-like name as nought and skips the group. Writing Pastel's
+condition as true got past the compiler's refusal only to put a second `fogColor` beside the
+overworld one, which was then refused as a redefinition. Such a condition is written out as
+`#if 0`, whatever the rest of the expression would have said; a call to a name the pack does
+define is still read as that name's value.
 
 Name resolution inside conditions follows a ladder: an unknown name is zero, a name defined without
 a value is one, a numeric value is that number, a bare identifier resolves recursively, and an

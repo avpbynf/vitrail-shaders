@@ -370,7 +370,7 @@ public final class PackProgram {
 			ShaderProperties properties = ShaderProperties.parse(source);
 			Map<String, OptionValue> fromProfile = profile.isEmpty()
 					? Map.of()
-					: properties.expandProfile(profile);
+					: properties.expandProfile(profile, options);
 			SettingSet settings = SettingSet.resolve(fromProfile, chosen, profile.isEmpty() ? "chosen" : profile);
 			IncludeExpander expander = new IncludeExpander(source, settings);
 

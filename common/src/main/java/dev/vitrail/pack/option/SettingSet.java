@@ -31,10 +31,12 @@ import java.util.Map;
  * up in the boolean half of the index rather than in the whole of it. {@code !NAME},
  * {@code NAME=value} and {@code NAME:value} go through unchecked at {@code :70-77}. Measured over
  * the eight pack corpus, the checked form is 17 tokens of the 440 those four carry, against 402 for
- * {@code NAME=value}, 21 for {@code !NAME} and none at all for {@code NAME:value}. Here nothing is
- * looked up on any form {@code ShaderProperties.expandProfile} takes, a bare token becoming an on
- * without a lookup. What that difference costs is a pack author's own typo staying invisible in one
- * form of four; what it costs the picture is nothing, both engines applying the word nowhere.
+ * {@code NAME=value}, 21 for {@code !NAME} and none at all for {@code NAME:value}. Here the bare
+ * form is looked up in the boolean half of the index ({@link OptionIndex#booleanOption}), as it is
+ * there, so a declared value written bare keeps its default instead of becoming an on. The other
+ * three forms go through unchecked on both sides. What the difference costs is a pack author's own
+ * typo staying invisible in one form of four; what it costs the picture is nothing, both engines
+ * applying the word nowhere.
  * <p>
  * A second and unrelated gap sits in the same method and is NOT this one: two of the six forms have
  * no branch here at all. {@code NAME:value} falls through to the bare case and turns on an option

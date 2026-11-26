@@ -194,17 +194,19 @@ public final class PackMenu {
 	 * {@code GTAO} in all four of its profiles and declares it in none of its shaders, so keeping it
 	 * makes every profile fail to match and the overlay read {@code Custom} on a pack nobody has
 	 * touched.
+	 * <p>
+	 * A name that is declared but is not a boolean, such as Pastel's bare {@code AMBIENT_DR} in
+	 * {@code profile.YLOW}, is dropped without a line of warning: the reference drops it too, and
+	 * the pack keeps its numeric default. Only a name nothing declares is worth reporting.
 	 */
 	private static Map<String, String> expand(ShaderProperties properties, OptionIndex index,
 			List<String> warnings, String name) {
 		Map<String, String> expanded = new LinkedHashMap<>();
 		properties.expandProfile(name, token -> {
-			boolean toggle = index.get(token)
-					.filter(option -> option.kind() == PackOption.Kind.TOGGLE)
-					.isPresent();
-			if (!toggle) {
+			boolean toggle = index.booleanOption(token);
+			if (!toggle && index.get(token).isEmpty()) {
 				warnings.add("profile." + name + " names " + token
-						+ ", which this pack declares nowhere as a toggle, so it is not a constraint");
+						+ ", which this pack declares nowhere, so it is not a constraint");
 			}
 
 			return toggle;
