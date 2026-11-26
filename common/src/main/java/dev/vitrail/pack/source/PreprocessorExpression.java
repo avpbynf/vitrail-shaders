@@ -34,6 +34,14 @@ import java.util.regex.Pattern;
  * expected to treat that as true. Including code that should have been skipped leaves a
  * compiler error to find; skipping code that should have been included removes a function
  * whose absence surfaces somewhere else entirely.
+ * <p>
+ * A call to a name no define supplies is the one exception, and it answers false. The
+ * reference's preprocessor answers an undefined function-like name in a condition with nought
+ * and never shows the compiler the call: Pastel writes
+ * {@code #if (in(biome, BIOME_SOUL_SAND_VALLEY)} in a fog include shared by six units, and taking
+ * that group put a second {@code fogColor} beside the overworld one, which the compiler refused
+ * as a redefinition. The answer is marked unreadable so a caller writing the directive back out
+ * writes the answer rather than the pack's text, which GLSL's preprocessor cannot read at all.
  */
 public final class PreprocessorExpression {
 
@@ -73,6 +81,13 @@ public final class PreprocessorExpression {
 	 * an operand a short circuit spares, because the compiler reads the text either way.
 	 */
 	private boolean fractional;
+
+	/**
+	 * Whether the text named a function no define supplies, which the reference answers false and
+	 * the compiler cannot read. A verdict carrying this has to be written back out as a decided
+	 * directive rather than left as the pack wrote it.
+	 */
+	private boolean unreadable;
 
 	/**
 	 * One value of an expression: what it is worth, and whether it is a whole number.
@@ -126,39 +141,41 @@ public final class PreprocessorExpression {
 	 * @param fractional whether the expression read a value that is not a whole number. The
 	 *                   preprocessor of the language refuses such a line outright, so a caller that
 	 *                   writes the text back out has to answer it here instead of passing it on
+	 * @param unreadable whether it named a function no define supplies, which the reference answers
+	 *                   false and the compiler refuses to read, so the text has to be rewritten too
 	 */
-	public record Verdict(Optional<Boolean> taken, boolean fractional) {
+	public record Verdict(Optional<Boolean> taken, boolean fractional, boolean unreadable) {
 	}
 
 	/** The same as {@link #evaluate}, with what the caller needs to know about the text itself. */
 	public static Verdict decide(String expression, Map<String, String> defines) {
 		Reading read = read(expression, defines, 0);
 
-		return new Verdict(read.value().map(Scalar::truth), read.fractional());
+		return new Verdict(read.value().map(Scalar::truth), read.fractional(), read.unreadable());
 	}
 
-	/** One evaluation: what it came to, and whether anything fractional was read on the way. */
-	private record Reading(Optional<Scalar> value, boolean fractional) {
+	/** One evaluation: what it came to, what it read, and whether its text can be passed on. */
+	private record Reading(Optional<Scalar> value, boolean fractional, boolean unreadable) {
 	}
 
 	/** The numeric answer, which is what a name resolving to an expression needs. */
 	private static Reading read(String expression, Map<String, String> defines, int depth) {
 		if (depth > MAX_RESOLUTION_DEPTH) {
-			return new Reading(Optional.empty(), false);
+			return new Reading(Optional.empty(), false, false);
 		}
 
 		List<String> tokens = tokenise(stripComments(expression));
 		if (tokens.isEmpty()) {
-			return new Reading(Optional.empty(), false);
+			return new Reading(Optional.empty(), false, false);
 		}
 
 		PreprocessorExpression parser = new PreprocessorExpression(tokens, defines, depth);
 		Scalar result = parser.logicalOr();
 		if (parser.failed || parser.malformed || parser.position < tokens.size()) {
-			return new Reading(Optional.empty(), parser.fractional);
+			return new Reading(Optional.empty(), parser.fractional, parser.unreadable);
 		}
 
-		return new Reading(Optional.of(result), parser.fractional);
+		return new Reading(Optional.of(result), parser.fractional, parser.unreadable);
 	}
 
 	private static String stripComments(String expression) {
@@ -510,7 +527,10 @@ public final class PreprocessorExpression {
 
 			Scalar value = logicalOr();
 			this.nesting--;
-			if (!accept(")")) {
+			// A call to an undefined name has already answered the whole condition and consumed
+			// the tail. Packs write those calls with a bracket left open, so asking for a closing
+			// one here would turn a decided false back into no answer at all.
+			if (!accept(")") && !this.unreadable) {
 				this.malformed = true;
 			}
 
@@ -524,8 +544,20 @@ public final class PreprocessorExpression {
 		}
 
 		if (isIdentifier(token)) {
+			if (!this.defines.containsKey(token) && "(".equals(peek())) {
+				// The reference answers a call to an undefined name with nought, whatever else the
+				// expression says, and never hands the call to the compiler. Consume the tail so
+				// this is a decided false rather than an undecidable expression, and say that the
+				// text itself cannot go back out.
+				this.unreadable = true;
+				this.position = this.tokens.size();
+
+				return Scalar.of(0);
+			}
+
 			Reading read = resolve(token, this.defines, this.depth + 1);
 			this.fractional |= read.fractional();
+			this.unreadable |= read.unreadable();
 
 			return read.value().orElse(Scalar.of(0));
 		}
@@ -565,19 +597,19 @@ public final class PreprocessorExpression {
 	 */
 	private static Reading resolve(String name, Map<String, String> defines, int depth) {
 		if (depth > MAX_RESOLUTION_DEPTH) {
-			return new Reading(Optional.of(Scalar.of(0)), false);
+			return new Reading(Optional.of(Scalar.of(0)), false, false);
 		}
 
 		String value = defines.get(name);
 		if (value == null || value.isBlank()) {
 			// Defined but empty is the usual shape of a switch that is on.
-			return new Reading(Optional.of(Scalar.of(defines.containsKey(name))), false);
+			return new Reading(Optional.of(Scalar.of(defines.containsKey(name))), false, false);
 		}
 
 		String trimmed = value.trim();
 		Optional<Scalar> number = parseNumber(trimmed);
 		if (number.isPresent()) {
-			return new Reading(number, !number.get().integral());
+			return new Reading(number, !number.get().integral(), false);
 		}
 
 		if (isIdentifier(trimmed)) {
@@ -589,7 +621,8 @@ public final class PreprocessorExpression {
 		// sizes, and reducing that to a truth value quietly gives the wrong branch.
 		Reading read = read(trimmed, defines, depth + 1);
 
-		return new Reading(Optional.of(read.value().orElse(Scalar.of(1))), read.fractional());
+		return new Reading(Optional.of(read.value().orElse(Scalar.of(1))), read.fractional(),
+				read.unreadable());
 	}
 
 	private static boolean isIdentifier(String token) {

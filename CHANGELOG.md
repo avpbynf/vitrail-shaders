@@ -23,8 +23,10 @@ what the next one holds.
 - **Pastel Shaders draws again.** Its shared fog include carries a malformed condition,
   `#if (in(biome, BIOME_SOUL_SAND_VALLEY)`, which was handed to the compiler as written. The
   compiler's preprocessor has no `in` and refused `world0/deferred1`, so nothing of the pack was
-  drawn. A condition Vitrail cannot answer is now written out as the taken branch it already
-  chose, instead of the pack's unreadable text; the branch taken is unchanged.
+  drawn. Writing the condition as taken instead got past that only to define `fogColor` twice,
+  which the compiler refused for redefinition. A call to a name the pack never defines in a
+  condition is now answered false, as the reference's preprocessor answers it, and written out
+  as `#if 0`; other conditions Vitrail cannot answer keep the taken branch they already chose.
 - **Complementary no longer logs two shader errors when Distant Horizons' rendering is switched
   off.** With that mod installed and its rendering off, loading the pack could log
   `'dhProjection' : undeclared identifier` for its two far terrain programs, which nothing

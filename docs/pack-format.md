@@ -427,6 +427,13 @@ as Pastel's `#if (in(biome, BIOME_SOUL_SAND_VALLEY)`, is refused by the compiler
 conditions are answered here rather than handed to the compiler, so they are not counted among the
 undecidable ones.
 
+**One shape is answered false instead: a call to a name no define supplies.** The reference's
+preprocessor reads an undefined function-like name as nought and skips the group. Writing Pastel's
+condition as true got past the compiler's refusal only to put a second `fogColor` beside the
+overworld one, which was then refused as a redefinition. Such a condition is written out as
+`#if 0`, whatever the rest of the expression would have said; a call to a name the pack does
+define is still read as that name's value.
+
 Name resolution inside conditions follows a ladder: an unknown name is zero, a name defined without
 a value is one, a numeric value is that number, a bare identifier resolves recursively, and an
 expression **keeps its value** rather than collapsing to one or zero.

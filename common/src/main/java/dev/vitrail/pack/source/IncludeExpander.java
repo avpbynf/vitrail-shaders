@@ -634,13 +634,21 @@ public final class IncludeExpander {
 	 * same reason {@link #decide} takes it: including code that is not wanted costs a compiler
 	 * error that names the line, while dropping code that is wanted removes a declaration and the
 	 * error points somewhere else. Writing the answer rather than the pack's text also matters.
-	 * Pastel writes {@code #if (in(biome, BIOME_SOUL_SAND_VALLEY)} in the fog include shared by
-	 * six of its units; a compiler's preprocessor has no {@code in} and refused the whole pack.
-	 * The branch this reader picks is unchanged, only the directive the compiler sees is.
+	 * <p>
+	 * A call to a name no define supplies is answered false instead, as the reference's
+	 * preprocessor answers it, and written out as {@code #if 0}. Pastel writes
+	 * {@code #if (in(biome, BIOME_SOUL_SAND_VALLEY)} in the fog include shared by six of its units;
+	 * a compiler's preprocessor has no {@code in} and refused the whole pack. Taking that group
+	 * was worse: it put a second {@code fogColor} beside the overworld one and the compiler
+	 * refused {@code world0/deferred1} for redefinition. The branch the reference takes is the one
+	 * written out in both cases, only the directive the compiler sees changes.
 	 */
 	private String rewritten(String expression, State state) {
 		PreprocessorExpression.Verdict verdict =
 				PreprocessorExpression.decide(expression, state.defines);
+		if (verdict.unreadable()) {
+			return "0";
+		}
 		if (verdict.taken().isEmpty()) {
 			return "1";
 		}
