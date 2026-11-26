@@ -32,6 +32,11 @@ what the next one holds.
 
 ### Fixed
 
+- **Pastel Shaders draws again.** Its shared fog include carries a malformed condition,
+  `#if (in(biome, BIOME_SOUL_SAND_VALLEY)`, which was handed to the compiler as written. The
+  compiler's preprocessor has no `in` and refused `world0/deferred1`, so nothing of the pack was
+  drawn. A condition Vitrail cannot answer is now written out as the taken branch it already
+  chose, instead of the pack's unreadable text; the branch taken is unchanged.
 - **Distant Horizons' own clouds stay out of a pack that asks for that.** With Distant Horizons
   installed, its blocky clouds were drawn over the pack's sky even when the pack writes
   `dhClouds=off`, as Complementary does. They were hardest to miss under blindness, where the

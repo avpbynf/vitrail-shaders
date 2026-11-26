@@ -412,9 +412,13 @@ Two shapes the compiler takes are still missed: a directive written after the `*
 comment on the same line, and the `#endif` added at the end of a file for a rewritten group when
 that file ends inside a comment it never closed, which lands inside the comment.
 
-**A non-evaluable condition is taken as true**, and counted. The asymmetry is deliberate: including
-too much is recoverable, while a skipped include produces an avalanche of undeclared identifiers
-with no visible relation to its cause.
+**A non-evaluable condition is taken as true and written out as `#if 1`.** The asymmetry is
+deliberate: including too much is recoverable, while a skipped include produces an avalanche of
+undeclared identifiers with no visible relation to its cause. Writing the answer instead of the
+pack's text matters too, because a condition naming something the compiler has no notion of, such
+as Pastel's `#if (in(biome, BIOME_SOUL_SAND_VALLEY)`, is refused by the compiler outright. These
+conditions are answered here rather than handed to the compiler, so they are not counted among the
+undecidable ones.
 
 Name resolution inside conditions follows a ladder: an unknown name is zero, a name defined without
 a value is one, a numeric value is that number, a bare identifier resolves recursively, and an
