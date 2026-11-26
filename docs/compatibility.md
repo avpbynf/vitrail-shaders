@@ -76,26 +76,45 @@ words at the moment it happened.
 
 The engine refuses a pack rather than drawing something wrong with it, and it names the reason.
 
-**A pack can be refused for using a graphics feature this backend does not have.** The game's own
-compiler closes several of them by name, not by missing effort here, and
+**A pack can be refused for using a graphics feature this engine does not serve.** The game's Java
+rendering facade closes compute and storage by name, but the Vulkan backend underneath has both, and
 [translation](translation.md) carries which. Storage images, storage buffers and a pack's shadow
-compute are no longer on that list: they are served beside that compiler rather than through it,
-which is what `IRIS_FEATURE_CUSTOM_IMAGES` and `IRIS_FEATURE_SSBO` announce and why voxel lighting
-draws. The full-screen shadow composites are a different family and are still skipped, the log
-naming them at load.
+compute are served beside that facade rather than through it, which is what
+`IRIS_FEATURE_CUSTOM_IMAGES` and `IRIS_FEATURE_SSBO` announce and why voxel lighting draws.
+
+**Storage images and storage buffers work on every platform this engine runs on, Apple included.**
+The Apple-only limit belongs to Iris's OpenGL driver, not to Vulkan or Metal. The engine widens the
+game's Java facade in `VulkanBindGroupLayoutMixin` and `VulkanConstMixin` and binds storage through
+`StorageImages` and `StorageBuffers`. It also withholds `MC_OS_MAC` (`EngineDefines.osSymbol`),
+because a pack reading that symbol would assume the OpenGL driver's limits and switch coloured
+lighting off for no reason. The refusals that remain are the card's, not the platform's: a format it
+cannot use as a storage image (`GpuFormats.storageCapable`), a view it cannot both sample and store
+through (`StorageImages.unusableViews`), or a feature its driver does not expose
+(`VulkanBackendMixin.enable`). Each is named in the log.
+
+**The full-screen shadow composites are still skipped, and that is an engine gap rather than a
+backend limit.** `TargetPlan.walk` drops them because they draw full screen over the shadow colour
+buffers on a flip counter of their own: their draw buffers name no colour target of the place, the
+frame has no `shadowcomp_pre` stage in `TargetSchedule`, and `ShadowTargets` holds one colour buffer
+per index rather than two halves. The log names the skipped programs at load
+(`TargetPlan.notes`). Serving them needs a stage, an attachment path over the shadow targets and a
+flip scheme, and getting the order wrong gives a plausible but wrong image, so they are left out
+until that stage exists rather than drawn approximately.
 
 A pack can declare the features it cannot be drawn without, and Reverie declares several. That
 line is read before any of its programs is translated, so a refusal names what the pack asked for
 and did not get, the log listing them, rather than the symptom that would have come later. Every
 name Reverie declares is served now, so it is no longer refused there.
 
-**Any name this engine has not built refuses the declaration.** The names built and served today
-are `BLOCK_EMISSION_ATTRIBUTE`, `COMPUTE_SHADERS`, `CUSTOM_IMAGES`, `ENTITY_TRANSLUCENT`,
-`HIGHER_SHADOWCOLOR`, `PER_BUFFER_BLENDING`, `SEPARATE_HARDWARE_SAMPLERS` and `SSBO`, so a pack
-that requires those alone loads, and every other name still refuses the pack, with the list in the
-log. The served flags are also the only `IRIS_FEATURE_` defines a pack finds: a capability define
-is a promise, so each appears the day its feature is served and not before, and the optional
-declarations keep reading the truth.
+**Any capability name this engine has not built refuses the declaration.** `PackChoice.load` takes
+the pack's required list, removes the names in its `served` set, and refuses a pack that asked for
+anything left. That set is kept in step with the defines posted by `EngineDefines.table`, because a
+define is a promise: the names built and served today are `BLOCK_EMISSION_ATTRIBUTE`,
+`COMPUTE_SHADERS`, `CUSTOM_IMAGES`, `ENTITY_TRANSLUCENT`, `HIGHER_SHADOWCOLOR`,
+`PER_BUFFER_BLENDING`, `SEPARATE_HARDWARE_SAMPLERS` and `SSBO`. Every other Iris capability name
+still refuses the pack, with the list in the log, and is not posted as a define either. Only
+`PER_BUFFER_BLENDING` is answered by the device rather than by this list; the next paragraph says
+how.
 
 One of those names is the device's answer rather than the engine's. `PER_BUFFER_BLENDING` lets a
 pack give one of the targets a pass writes a different blend function from the others, and Vulkan
@@ -126,11 +145,11 @@ the world goes back to the game's own look and the settings screen says an error
 is what the reference does with a pack that fails the same way.
 
 **On a Mac, a compute step that shares more memory between its threads than Metal allows is given a
-buffer instead.** Metal lets the threads of one compute step share 32768 bytes, and Photon's sky
-light asks for 36864, so the step was refused and the ground the sky lights came out dark. Where
-the step runs as a single group of threads, which is how Photon runs it, that memory is now a buffer
-and the step computes the same light. A step past the limit that runs as several groups is still
-refused, and the log names it. How is in
+buffer instead.** Metal's threadgroup limit is 32768 bytes (`SharedMemory.THREADGROUP_BYTES`), and
+Photon's sky light asks for 36864, so the step was refused and the ground the sky lights came out
+dark. Where the step runs as a single group of threads, which is how Photon runs it, that memory is
+now a buffer and the step computes the same light. A step past the limit that runs as several groups
+is still refused by `PackCompute.Pass.sharedMemory`, and the log names it. How is in
 [the game's graphics API](internals/game-graphics-api.md#compute-and-storage-images-the-facade-vs-the-backend).
 
 **A full-screen pass that fails to compile takes the whole pack with it**, and the log names the
@@ -161,16 +180,18 @@ and asks you to switch to Iris. This is not the engine refusing anything: the pa
 message is one of its passes, and it is drawn because a capability test in its code came out false.
 
 The test reads capability defines. This engine announces itself the way Iris does, but a capability
-define is a promise, so it defines only what the backend actually serves, which today is
-`IRIS_FEATURE_BLOCK_EMISSION_ATTRIBUTE`, `IRIS_FEATURE_COMPUTE_SHADERS`,
+define is a promise, so `EngineDefines.table` posts only what the engine actually serves, which
+today is `IRIS_FEATURE_BLOCK_EMISSION_ATTRIBUTE`, `IRIS_FEATURE_COMPUTE_SHADERS`,
 `IRIS_FEATURE_CUSTOM_IMAGES`, `IRIS_FEATURE_ENTITY_TRANSLUCENT`,
 `IRIS_FEATURE_HIGHER_SHADOWCOLOR`, `IRIS_FEATURE_SEPARATE_HARDWARE_SAMPLERS`,
 `IRIS_FEATURE_SSBO` and, where the driver parts the blend state of one attachment from the next,
-`IRIS_FEATURE_PER_BUFFER_BLENDING`, and nothing else.
-The section above says why the features behind the other names are closed. A pack that finds the
-announcement without the capability it wants concludes it is running on OptiFine, the only
-renderer in that position when the pack was written, and words its message for it. Read "OptiFine"
-as "not Iris" and the message is accurate.
+`IRIS_FEATURE_PER_BUFFER_BLENDING`, and nothing else. This is the same list `PackChoice.load` uses
+to accept a required declaration: adding a define to one half and not the other would promise a
+feature with no implementation behind it. No Iris capability name left unbuilt in the packs this
+engine has been measured with remains, so a pack showing the message today is branching on a define
+this engine does not promise. A pack that finds the announcement without the capability it wants
+concludes it is running on OptiFine, the only renderer in that position when the pack was written,
+and words its message for it. Read "OptiFine" as "not Iris" and the message is accurate.
 
 Complementary was the pack of the test set that did this, and it is why the define exists. Its
 colored lighting, which its two top profiles Very High and Ultra turn on, is voxel lighting:

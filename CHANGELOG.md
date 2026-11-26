@@ -15,6 +15,16 @@ what the next one holds.
 
 ### Fixed
 
+- **Pastel's ambient colour keeps its value.** Its `profile.YLOW` names `AMBIENT_DR` bare, but that
+  setting is a number, not a switch. Iris drops such a word; Vitrail was applying it as ON, which
+  left the pack's `#define AMBIENT_DR 140` with no value. Bare names are now constraints only when
+  the pack declares them as booleans, in both the load and the menu paths, and the menu no longer
+  warns about a setting the pack really has.
+- **Pastel Shaders draws again.** Its shared fog include carries a malformed condition,
+  `#if (in(biome, BIOME_SOUL_SAND_VALLEY)`, which was handed to the compiler as written. The
+  compiler's preprocessor has no `in` and refused `world0/deferred1`, so nothing of the pack was
+  drawn. A condition Vitrail cannot answer is now written out as the taken branch it already
+  chose, instead of the pack's unreadable text; the branch taken is unchanged.
 - **Complementary no longer logs two shader errors when Distant Horizons' rendering is switched
   off.** With that mod installed and its rendering off, loading the pack could log
   `'dhProjection' : undeclared identifier` for its two far terrain programs, which nothing
@@ -32,11 +42,6 @@ what the next one holds.
 
 ### Fixed
 
-- **Pastel Shaders draws again.** Its shared fog include carries a malformed condition,
-  `#if (in(biome, BIOME_SOUL_SAND_VALLEY)`, which was handed to the compiler as written. The
-  compiler's preprocessor has no `in` and refused `world0/deferred1`, so nothing of the pack was
-  drawn. A condition Vitrail cannot answer is now written out as the taken branch it already
-  chose, instead of the pack's unreadable text; the branch taken is unchanged.
 - **Distant Horizons' own clouds stay out of a pack that asks for that.** With Distant Horizons
   installed, its blocky clouds were drawn over the pack's sky even when the pack writes
   `dhClouds=off`, as Complementary does. They were hardest to miss under blindness, where the

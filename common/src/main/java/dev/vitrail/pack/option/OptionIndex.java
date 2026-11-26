@@ -151,6 +151,20 @@ public final class OptionIndex {
 		};
 	}
 
+	/**
+	 * Whether a bare positive in a profile means "switch this on", which is the reference's
+	 * boolean half of the index ({@code ProfileSet.parse} calling
+	 * {@code OptionSet.isBooleanOption}). A value with a list, or a numeric constant, is a real
+	 * setting and still not a bare word: Iris drops that form of it, and this engine has to do
+	 * the same. Writing ON into a numeric option leaves its {@code #define} valueless, so the
+	 * setting is neither Iris's default nor anything the pack can read.
+	 */
+	public boolean booleanOption(String name) {
+		return get(name).filter(this::offers).filter(option ->
+				option.kind() == PackOption.Kind.TOGGLE
+						|| "bool".equals(option.constType())).isPresent();
+	}
+
 	public Collection<PackOption> all() {
 		return this.byName.values();
 	}

@@ -103,7 +103,11 @@ Two consequences that are easy to get wrong from first principles:
 - **Shadow composites are folded even though they never enter the ping-pong.** They sit at the head
   of the order, and they run against the shadow targets with a flip counter of their own, so their
   attachment directives name shadow colour targets and never scene colour targets. Their format
-  declarations still count.
+  declarations still count, and `TargetPlan` folds them for that reason alone. The stage they would
+  draw in does not exist here: `TargetSchedule.PRE_STAGES` has no `shadowcomp_pre`, `ShadowTargets`
+  holds one colour per index rather than two halves, and `TargetPlan.walk` drops the fragment
+  programs from the frame. That is an engine gap, not a Vulkan limitation; the log names what was
+  skipped.
 
 There are also directives the reference *registers* and never dispatches: the consumer is wired up
 but the handler behind it is empty. They look implementable from the outside and are dead in

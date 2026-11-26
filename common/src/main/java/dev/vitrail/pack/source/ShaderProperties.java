@@ -1158,11 +1158,20 @@ public final class ShaderProperties {
 	}
 
 	/**
-	 * The settings a profile chooses. A profile may pull in another one, so this resolves the
-	 * chain; the later choice wins, which is what lets a profile refine the one it includes.
+	 * The settings a profile chooses, as Iris applies them. A profile may pull in another one, so
+	 * this resolves the chain; the later choice wins, which is what lets a profile refine the one
+	 * it includes.
+	 * <p>
+	 * The one form the reference checks before keeping it is a bare positive. It is a constraint
+	 * only when the name is a boolean option; a bare numeric setting is dropped and its default
+	 * left alone. Pastel writes {@code AMBIENT_DR} bare in {@code profile.YLOW} while declaring it
+	 * as a value, and Iris drops that word. Keeping it here used to rewrite the pack's
+	 * {@code #define AMBIENT_DR 140} into one with no value at all, leaving the setting undefined.
+	 *
+	 * @param options the pack's declarations, which say whether a bare word can mean ON
 	 */
-	public Map<String, OptionValue> expandProfile(String name) {
-		return expandProfile(name, _ -> true);
+	public Map<String, OptionValue> expandProfile(String name, OptionIndex options) {
+		return expandProfile(name, options::booleanOption);
 	}
 
 	/**
@@ -1178,10 +1187,9 @@ public final class ShaderProperties {
 	 * profiles and declares it in no shader, so a constraint on it can never be met: every profile
 	 * fails to match, the overlay reads {@code Custom (+0 options changed by user)}, which is its own
 	 * contradiction, and the selector can never land on a name. The picture is untouched either way,
-	 * both engines applying a word nowhere, which is why {@link #expandProfile(String)} keeps its
-	 * old behaviour for the paths that only apply values.
+	 * both engines applying a word nowhere.
 	 *
-	 * @param known answers whether the pack declares that name as a toggle
+	 * @param known answers whether that name is a boolean option of this pack
 	 */
 	public Map<String, OptionValue> expandProfile(String name, Predicate<String> known) {
 		Map<String, OptionValue> chosen = new LinkedHashMap<>();

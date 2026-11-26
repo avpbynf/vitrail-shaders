@@ -349,6 +349,13 @@ false, a name with a value, and a bare name meaning true. They are applied in re
 one winning, and each profile is an independent variant: there is no running "current profile"
 accumulating across them.
 
+The bare shape is a constraint only when the name is declared as a boolean, which is the
+reference's own sieve (`ProfileSet.parse` calling `OptionSet.isBooleanOption`). A bare numeric
+setting is dropped and its default left alone: Pastel writes `AMBIENT_DR` bare in `profile.YLOW`,
+and forcing it on used to rewrite the pack's `#define AMBIENT_DR 140` into one with no value at all.
+Applying and menu paths use the same answer, so a profile neither changes such a setting nor warns
+about it.
+
 The profile shown to the user is **deduced, not stored**: it is the first profile, from most
 constrained to least, whose values all match the ones in force, and Custom otherwise. No profile is
 synthesised from the pack's own defaults, here or in the reference, so a reset lands on a named

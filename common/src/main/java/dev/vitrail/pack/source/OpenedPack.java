@@ -66,7 +66,7 @@ public record OpenedPack(Path packPath, ShaderPackSource source, OptionIndex opt
 			OptionIndex options = source.options();
 			ShaderProperties properties = ShaderProperties.parse(source);
 			Map<String, OptionValue> fromProfile =
-					profile.isEmpty() ? Map.of() : properties.expandProfile(profile);
+					profile.isEmpty() ? Map.of() : properties.expandProfile(profile, options);
 			SettingSet settings =
 					SettingSet.resolve(fromProfile, chosen, profile.isEmpty() ? "chosen" : profile);
 
