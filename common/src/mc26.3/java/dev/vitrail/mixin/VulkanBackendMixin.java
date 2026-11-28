@@ -10,6 +10,7 @@ import com.mojang.renderpearl.backend.vulkan.init.VulkanFeature;
 import dev.vitrail.glsl.SharedMemory;
 import dev.vitrail.glsl.VendorExtensions;
 import dev.vitrail.pack.model.ProgramStage;
+import dev.vitrail.pack.texture.CustomImages;
 import dev.vitrail.render.BufferBlending;
 import dev.vitrail.render.GeometryStage;
 import dev.vitrail.render.WideSamplerSets;
@@ -202,7 +203,8 @@ public abstract class VulkanBackendMixin {
 		enable(physical, features, VERTEX_STORES, enabled, VOXELS);
 		enable(physical, features, FRAGMENT_STORES, enabled, VOXELS);
 		enable(physical, features, EXTENDED_FORMATS, enabled, VOXELS);
-		enable(physical, features, WRITE_WITHOUT_FORMAT, enabled, VOXELS);
+		CustomImages.serveBareWrites(
+				enable(physical, features, WRITE_WITHOUT_FORMAT, enabled, VOXELS));
 		BufferBlending.serve(enable(physical, features, INDEPENDENT_BLEND, enabled, PER_BUFFER));
 		GeometryStage.serve(enable(physical, features, GEOMETRY_SHADER, enabled, GEOMETRY));
 		if (physical.hasDeviceExtension(PORTABILITY_EXTENSION)) {

@@ -672,6 +672,14 @@ record Emitter(ProgramStage stage, VertexInputs inputs, List<String> bound, Alph
 	 * header: the body declaration has already been lifted, so a layout qualifier inserted into the
 	 * token stream would qualify a statement that is no longer in the shader.
 	 * <p>
+	 * <strong>A write-only image the pack left bare stays bare where the device writes without a
+	 * format</strong> ({@link CustomImages#bareWrites}). The format is part of the image's SPIR-V
+	 * type and a function parameter cannot carry one (GLSL refuses a layout qualifier there), so a
+	 * format added only to the declaration makes every call that passes the image to the pack's own
+	 * function invalid: Photon's {@code update_lpv(writeonly image3D, sampler3D)} fails with
+	 * "OpFunctionCall Argument type does not match", and its floodfill never runs. Bare is also
+	 * what Iris compiles.
+	 * <p>
 	 * The pack's own format comes first and the {@code image.} directive second, because the pack's
 	 * own is the text Iris hands its compiler: a pack that declares a volume one way and writes
 	 * another word in the shader is compiled on the word in the shader, and reading it back is the
@@ -699,7 +707,13 @@ record Emitter(ProgramStage stage, VertexInputs inputs, List<String> bound, Alph
 			return tail;
 		}
 
-		return Optional.ofNullable(this.imageFormats.get(sampler.name()))
+		String own = this.imageFormats.get(sampler.name());
+		if (own == null && CustomImages.bareWrites()
+				&& List.of(memory.split("\\s+")).contains("writeonly")) {
+			return tail;
+		}
+
+		return Optional.ofNullable(own)
 				.or(() -> CustomImages.layoutFormat(sampler.name()))
 				.map(format -> "layout(" + format + ") " + tail)
 				.orElse(tail);

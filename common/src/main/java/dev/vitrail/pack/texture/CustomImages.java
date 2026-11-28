@@ -33,7 +33,24 @@ public final class CustomImages {
 	private static volatile Set<String> names = Set.of();
 	private static volatile String key = "";
 
+	private static volatile boolean bareWrites;
+
 	private CustomImages() {
+	}
+
+	/** Set once by {@code VulkanBackendMixin}, at device creation and before any pack is read. */
+	public static void serveBareWrites(boolean writeWithoutFormat) {
+		bareWrites = writeWithoutFormat;
+	}
+
+	/**
+	 * Whether a write-only storage image the pack declared with no format can stay that way, which
+	 * is {@code shaderStorageImageWriteWithoutFormat} on the device. Where it can, it does: Iris
+	 * compiles that declaration as written, and a format added to it changes the image's SPIR-V
+	 * type, so a pack function taking the image as a parameter no longer accepts it.
+	 */
+	public static boolean bareWrites() {
+		return bareWrites;
 	}
 
 	/** Whether this word names an image format, as opposed to anything else a layout carries. */

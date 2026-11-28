@@ -843,7 +843,8 @@ public final class GlslTranslator {
 		return (reduceTrig ? "trig-reduced" : "trig-driver")
 				+ (softCompare() ? " compare-in-shader" : " compare-on-sampler")
 				+ " shadow-chain-" + (shadowChainZero ? '1' : '0') + (shadowChainOne ? '1' : '0')
-				+ " custom-views-v1:" + CustomImages.key();
+				+ " custom-views-v1:" + CustomImages.key()
+				+ (CustomImages.bareWrites() ? " bare-writes" : " formatted-writes");
 	}
 
 	private void rewrite() {
