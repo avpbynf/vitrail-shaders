@@ -19,6 +19,10 @@ what the next one holds.
   off.** With that mod installed and its rendering off, loading the pack could log
   `'dhProjection' : undeclared identifier` for its two far terrain programs, which nothing
   draws in that state. Those programs are now left alone until Distant Horizons draws.
+- **A compute that hands a write-only image to a function of its own now compiles.** Photon's
+  coloured light flood fill is one: with coloured lights on, its compute was refused at load with
+  `OpFunctionCall Argument ... does not match` and never ran. The image now keeps the declaration
+  the pack wrote, as it does under Iris.
 
 ## 0.13.0-beta
 
