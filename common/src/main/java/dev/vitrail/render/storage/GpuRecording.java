@@ -2,6 +2,7 @@ package dev.vitrail.render.storage;
 
 import dev.vitrail.mixin.access.CommandEncoderAccessor;
 import dev.vitrail.mixin.access.VulkanCommandEncoderAccessor;
+import dev.vitrail.render.GraphicsApi;
 
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.CommandEncoderBackend;
@@ -24,8 +25,18 @@ public final class GpuRecording {
 	private GpuRecording() {
 	}
 
-	/** Ends the encoder's open pass, if any, so a clear, fill or dispatch can be recorded. */
+	/**
+	 * Ends the encoder's open pass, if any, so a clear, fill or dispatch can be recorded.
+	 * <p>
+	 * The level's pass first, through its own suspend: on 26.3 the level draws through one
+	 * {@code LevelPass}, and a backend pass ended here behind its back leaves it holding a pass the
+	 * backend no longer has. Its next suspend, the first clear after the targets are sized again
+	 * on a window resize, then submits a pass that was never started, and the family drawing at
+	 * that instant stops for the session. Suspended this way, the level's next draw opens its pass
+	 * again as after any other gap. On 26.2 there is no such pass and the call does nothing.
+	 */
 	public static void endPass(CommandEncoder encoder) {
+		GraphicsApi.suspendLevelPass();
 		CommandEncoderBackend backend = ((CommandEncoderAccessor) encoder).vitrail$backend();
 		if (!(backend instanceof VulkanCommandEncoder vulkan)) {
 			return;

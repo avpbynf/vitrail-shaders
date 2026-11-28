@@ -15,6 +15,13 @@ what the next one holds.
 
 ### Fixed
 
+- **Resizing the window no longer stops the sky and the terrain on Minecraft 26.3.** With a pack
+  that declares storage images sized on the screen, the first frame at a new size could log
+  `Cannot submit a renderpass if one hasn't been started!`, and the sky, then the terrain, the
+  entities and the particles stopped drawing until the game was restarted. Taking a screenshot
+  with a tool that briefly leaves fullscreen was enough. Those images are now emptied after the
+  level's pass has stepped aside, as every other clear is.
+
 - **Complementary no longer logs two shader errors when Distant Horizons' rendering is switched
   off.** With that mod installed and its rendering off, loading the pack could log
   `'dhProjection' : undeclared identifier` for its two far terrain programs, which nothing
